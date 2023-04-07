@@ -10,7 +10,7 @@ spec:
   project: {{ .Values.argoProject | default "default" }}
   source:
     repoURL: {{ .Values.repoUrl }}
-    path: add-ons/{{ .Chart.Version }}/aws-load-balancer-controller
+    path: addOns/{{ .Chart.Version }}/add-ons//aws-load-balancer-controller
     targetRevision: {{ .Values.targetRevision }}
     helm:
       values: |

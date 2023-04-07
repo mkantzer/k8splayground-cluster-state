@@ -10,7 +10,7 @@ spec:
   project: {{ .Values.argoProject | default "default" }}
   source:
     repoURL: {{ .Values.repoUrl }}
-    path: add-ons/{{ .Chart.Version }}/kube-state-metrics
+    path: addOns/{{ .Chart.Version }}/add-ons//kube-state-metrics
     targetRevision: {{ .Values.targetRevision }}
     helm:
       values: |

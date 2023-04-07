@@ -10,7 +10,7 @@ spec:
   project: {{ .Values.argoProject | default "default" }}
   source:
     repoURL: {{ .Values.repoUrl }}
-    path: add-ons/{{ .Chart.Version }}/aws-cloudwatch-metrics
+    path: addOns/{{ .Chart.Version }}/add-ons//aws-cloudwatch-metrics
     targetRevision: {{ .Values.targetRevision }}
     helm:
       values: |

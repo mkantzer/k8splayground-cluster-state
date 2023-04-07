@@ -10,7 +10,7 @@ spec:
   project: {{ .Values.argoProject | default "default" }}
   source:
     repoURL: {{ .Values.repoUrl }}
-    path: add-ons/{{ .Chart.Version }}/external-dns
+    path: addOns/{{ .Chart.Version }}/add-ons//external-dns
     targetRevision: {{ .Values.targetRevision }}
     helm:
       values: |

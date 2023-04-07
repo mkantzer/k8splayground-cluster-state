@@ -10,7 +10,7 @@ spec:
   project: {{ .Values.argoProject | default "default" }}
   source:
     repoURL: {{ .Values.repoUrl }}
-    path: add-ons/{{ .Chart.Version }}/prometheus
+    path: addOns/{{ .Chart.Version }}/add-ons//prometheus
     targetRevision: {{ .Values.targetRevision }}
     helm:
       values: |
