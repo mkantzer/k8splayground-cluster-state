@@ -1,0 +1,126 @@
+# Global Values
+repoUrl: 'https://github.com/mkantzer/k8splayground-cluster-state.git'
+targetRevision: HEAD
+region: ''
+account: ''
+clusterName: ''
+destinationServer: ''
+argoNamespace: ''
+argoProject: ''
+
+# Calico Values
+calico:
+  enable: false
+
+# AWS CloudWatch Metrics Values
+awsCloudWatchMetrics:
+  enable: false
+  createNamespace: true
+  serviceAccountName:
+
+# AWS EFS CSI Driver Values
+awsEfsCsiDriver:
+  enable: false
+  serviceAccountName:
+
+# AWS for Fluent Bit Values
+awsForFluentBit:
+  enable: false
+  createNamespace: true
+  logGroupName:
+  serviceAccountName:
+
+# AWS Load Balancer Controller Values
+awsLoadBalancerController:
+  enable: false
+  createNamespace: true
+  serviceAccountName:
+  podDisruptionBudget:
+    maxUnavailable: 1
+  respectIgnoreDifferences: true
+  ignoreDifferences:
+  - group: ""
+    kind: "Secret"
+    jsonPointers:
+    - /data
+  - group: "admissionregistration.k8s.io"
+    kind: "MutatingWebhookConfiguration"
+    jqPathExpressions:
+    - '.webhooks[]?.clientConfig.caBundle'
+  - group: "admissionregistration.k8s.io"
+    kind: "ValidatingWebhookConfiguration"
+    jqPathExpressions:
+    - '.webhooks[]?.clientConfig.caBundle'
+
+# Cert Manager Values
+certManager:
+  enable: false
+  createNamespace: true
+  serviceAccountName:
+
+# Cert Manager CSI Driver Values
+certManagerCsiDriver:
+  enable: false
+
+# External DNS Values
+externalDns:
+  enable: false
+  createNamespace: true
+  serviceAccountName:
+  zoneIdFilter:
+
+# External Secrets Operator
+externalSecrets:
+  enable: false
+
+# Nginx Values
+ingressNginx:
+  enable: false
+  createNamespace: true
+
+# Keda Values
+keda:
+  enable: false
+  createNamespace: true
+  serviceAccountName:
+
+# Metrics Server Values
+metricsServer:
+  enable: false
+
+# Prometheus Values
+prometheus:
+  enable: false
+  createNamespace: true
+  serviceAccountName:
+  roleArn:
+  ampWorkspaceUrl:
+
+# Argo Rollout Values
+argoRollouts:
+  enable: false
+  createNamespace: true
+
+# Argo Rollout Values
+argoWorkflows:
+  enable: false
+
+# Kube State Metrics Values
+kubeStateMetrics:
+  enable: false
+  createNamespace: true
+  serviceAccountName:
+
+# Prometheus Node Exporter
+promtheusNodeExporter:
+  enable: false
+  serviceAccountName:
+  
+# Kubernetes Dashboard Values
+kubernetesDashboard:
+  enable: false
+  serviceAccountName:
+
+# Kube Prometheus Stack
+kubePrometheusStack:
+  enable: false
