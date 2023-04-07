@@ -10,7 +10,7 @@ spec:
   project: {{ .Values.argoProject | default "default" }}
   source:
     repoURL: {{ .Values.repoUrl }}
-    path: add-ons/{{ .Chart.Version }}cilium
+    path: add-ons/{{ .Chart.Version }}/cilium
     targetRevision: {{ .Values.targetRevision }}
     helm:
       values: |

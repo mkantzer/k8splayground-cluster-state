@@ -10,7 +10,7 @@ spec:
   project: {{ .Values.argoProject | default "default" }}
   source:
     repoURL: {{ .Values.repoUrl }}
-    path: add-ons/{{ .Chart.Version }}karpenter
+    path: add-ons/{{ .Chart.Version }}/karpenter
     targetRevision: {{ .Values.targetRevision }}
     helm:
       values: |

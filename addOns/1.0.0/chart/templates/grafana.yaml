@@ -10,7 +10,7 @@ spec:
   project: {{ .Values.argoProject | default "default" }}
   source:
     repoURL: {{ required "repoUrl value is required" .Values.repoUrl }}
-    path: add-ons/{{ .Chart.Version }}grafana
+    path: add-ons/{{ .Chart.Version }}/grafana
     targetRevision: {{ .Values.targetRevision }}
     helm:
       values: |
