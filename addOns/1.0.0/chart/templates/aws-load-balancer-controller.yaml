@@ -21,7 +21,6 @@ spec:
             name: {{ .Values.awsLoadBalancerController.serviceAccountName }}
             create: false
         {{- toYaml .Values.awsLoadBalancerController | nindent 10 }}
-        {{- toYaml .Values.aws-load-balancer-controller | nindent 10 }}
   destination:
     server: {{ .Values.destinationServer | default "https://kubernetes.default.svc" }}
     namespace: kube-system

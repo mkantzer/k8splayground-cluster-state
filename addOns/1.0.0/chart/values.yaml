@@ -31,9 +31,6 @@ awsForFluentBit:
   serviceAccountName:
 
 # AWS Load Balancer Controller Values
-# this part is needed to actually pass in the vpc_id
-aws-load-balancer-controller:
-  vpcId:
 
 awsLoadBalancerController:
   enable: false
