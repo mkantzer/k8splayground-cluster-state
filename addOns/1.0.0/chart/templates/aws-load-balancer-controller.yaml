@@ -20,6 +20,7 @@ spec:
           serviceAccount:
             name: {{ .Values.awsLoadBalancerController.serviceAccountName }}
             create: false
+          vpcId: {{ .Values.valuesFromTF: vpcId }}
         {{- toYaml .Values.awsLoadBalancerController | nindent 10 }}
   destination:
     server: {{ .Values.destinationServer | default "https://kubernetes.default.svc" }}

@@ -8,6 +8,11 @@ destinationServer: ''
 argoNamespace: ''
 argoProject: ''
 
+# Values passed in from Terraform
+valuesFromTF:
+  vpcId:
+
+
 # Calico Values
 calico:
   enable: false
