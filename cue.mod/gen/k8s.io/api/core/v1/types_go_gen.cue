@@ -370,7 +370,6 @@ import (
 	// claim.VolumeName is the authoritative bind between PV and PVC.
 	// More info: https://kubernetes.io/docs/concepts/storage/persistent-volumes#binding
 	// +optional
-	// +structType=granular
 	claimRef?: null | #ObjectReference @go(ClaimRef,*ObjectReference) @protobuf(4,bytes,opt)
 
 	// persistentVolumeReclaimPolicy defines what happens to a persistent volume when released from its claim.
@@ -549,58 +548,30 @@ import (
 	// * An existing PVC (PersistentVolumeClaim)
 	// If the provisioner or an external controller can support the specified data source,
 	// it will create a new volume based on the contents of the specified data source.
-	// When the AnyVolumeDataSource feature gate is enabled, dataSource contents will be copied to dataSourceRef,
-	// and dataSourceRef contents will be copied to dataSource when dataSourceRef.namespace is not specified.
-	// If the namespace is specified, then dataSourceRef will not be copied to dataSource.
+	// If the AnyVolumeDataSource feature gate is enabled, this field will always have
+	// the same contents as the DataSourceRef field.
 	// +optional
 	dataSource?: null | #TypedLocalObjectReference @go(DataSource,*TypedLocalObjectReference) @protobuf(7,bytes,opt)
 
 	// dataSourceRef specifies the object from which to populate the volume with data, if a non-empty
-	// volume is desired. This may be any object from a non-empty API group (non
+	// volume is desired. This may be any local object from a non-empty API group (non
 	// core object) or a PersistentVolumeClaim object.
 	// When this field is specified, volume binding will only succeed if the type of
 	// the specified object matches some installed volume populator or dynamic
 	// provisioner.
-	// This field will replace the functionality of the dataSource field and as such
+	// This field will replace the functionality of the DataSource field and as such
 	// if both fields are non-empty, they must have the same value. For backwards
-	// compatibility, when namespace isn't specified in dataSourceRef,
-	// both fields (dataSource and dataSourceRef) will be set to the same
+	// compatibility, both fields (DataSource and DataSourceRef) will be set to the same
 	// value automatically if one of them is empty and the other is non-empty.
-	// When namespace is specified in dataSourceRef,
-	// dataSource isn't set to the same value and must be empty.
-	// There are three important differences between dataSource and dataSourceRef:
-	// * While dataSource only allows two specific types of objects, dataSourceRef
+	// There are two important differences between DataSource and DataSourceRef:
+	// * While DataSource only allows two specific types of objects, DataSourceRef
 	//   allows any non-core object, as well as PersistentVolumeClaim objects.
-	// * While dataSource ignores disallowed values (dropping them), dataSourceRef
+	// * While DataSource ignores disallowed values (dropping them), DataSourceRef
 	//   preserves all values, and generates an error if a disallowed value is
 	//   specified.
-	// * While dataSource only allows local objects, dataSourceRef allows objects
-	//   in any namespaces.
 	// (Beta) Using this field requires the AnyVolumeDataSource feature gate to be enabled.
-	// (Alpha) Using the namespace field of dataSourceRef requires the CrossNamespaceVolumeDataSource feature gate to be enabled.
 	// +optional
-	dataSourceRef?: null | #TypedObjectReference @go(DataSourceRef,*TypedObjectReference) @protobuf(8,bytes,opt)
-}
-
-#TypedObjectReference: {
-	// APIGroup is the group for the resource being referenced.
-	// If APIGroup is not specified, the specified Kind must be in the core API group.
-	// For any other third-party types, APIGroup is required.
-	// +optional
-	apiGroup?: null | string @go(APIGroup,*string) @protobuf(1,bytes,opt)
-
-	// Kind is the type of resource being referenced
-	kind: string @go(Kind) @protobuf(2,bytes,opt)
-
-	// Name is the name of resource being referenced
-	name: string @go(Name) @protobuf(3,bytes,opt)
-
-	// Namespace is the namespace of resource being referenced
-	// Note that when a namespace is specified, a gateway.networking.k8s.io/ReferenceGrant object is required in the referent namespace to allow that namespace's owner to accept the reference. See the ReferenceGrant documentation for details.
-	// (Alpha) This field requires the CrossNamespaceVolumeDataSource feature gate to be enabled.
-	// +featureGate=CrossNamespaceVolumeDataSource
-	// +optional
-	namespace?: null | string @go(Namespace,*string) @protobuf(4,bytes,opt)
+	dataSourceRef?: null | #TypedLocalObjectReference @go(DataSourceRef,*TypedLocalObjectReference) @protobuf(8,bytes,opt)
 }
 
 // PersistentVolumeClaimConditionType is a valid value of PersistentVolumeClaimCondition.Type
@@ -1941,7 +1912,7 @@ import (
 	// must identify itself with an identifier specified in the audience of the
 	// token, and otherwise should reject the token. The audience defaults to the
 	// identifier of the apiserver.
-	// +optional
+	//+optional
 	audience?: string @go(Audience) @protobuf(1,bytes,rep)
 
 	// expirationSeconds is the requested duration of validity of the service
@@ -1950,7 +1921,7 @@ import (
 	// start trying to rotate the token if the token is older than 80 percent of
 	// its time to live or if the token is older than 24 hours.Defaults to 1 hour
 	// and must be at least 10 minutes.
-	// +optional
+	//+optional
 	expirationSeconds?: null | int64 @go(ExpirationSeconds,*int64) @protobuf(2,varint,opt)
 
 	// path is the path relative to the mount point of the file to project the
@@ -2082,20 +2053,11 @@ import (
 	// controllerExpandSecretRef is a reference to the secret object containing
 	// sensitive information to pass to the CSI driver to complete the CSI
 	// ControllerExpandVolume call.
-	// This is an beta field and requires enabling ExpandCSIVolumes feature gate.
+	// This is an alpha field and requires enabling ExpandCSIVolumes feature gate.
 	// This field is optional, and may be empty if no secret is required. If the
 	// secret object contains more than one secret, all secrets are passed.
 	// +optional
 	controllerExpandSecretRef?: null | #SecretReference @go(ControllerExpandSecretRef,*SecretReference) @protobuf(9,bytes,opt)
-
-	// nodeExpandSecretRef is a reference to the secret object containing
-	// sensitive information to pass to the CSI driver to complete the CSI
-	// NodeExpandVolume call.
-	// This is an alpha field and requires enabling CSINodeExpandSecret feature gate.
-	// This field is optional, may be omitted if no secret is required. If the
-	// secret object contains more than one secret, all secrets are passed.
-	// +optional
-	nodeExpandSecretRef?: null | #SecretReference @go(NodeExpandSecretRef,*SecretReference) @protobuf(10,bytes,opt)
 }
 
 // Represents a source location of a volume to mount, managed by an external CSI driver
@@ -2618,28 +2580,6 @@ import (
 	// More info: https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/
 	// +optional
 	requests?: #ResourceList @go(Requests) @protobuf(2,bytes,rep,casttype=ResourceList,castkey=ResourceName)
-
-	// Claims lists the names of resources, defined in spec.resourceClaims,
-	// that are used by this container.
-	//
-	// This is an alpha field and requires enabling the
-	// DynamicResourceAllocation feature gate.
-	//
-	// This field is immutable. It can only be set for containers.
-	//
-	// +listType=map
-	// +listMapKey=name
-	// +featureGate=DynamicResourceAllocation
-	// +optional
-	claims?: [...#ResourceClaim] @go(Claims,[]ResourceClaim) @protobuf(3,bytes,opt)
-}
-
-// ResourceClaim references one entry in PodSpec.ResourceClaims.
-#ResourceClaim: {
-	// Name must match the name of one entry in pod.spec.resourceClaims of
-	// the Pod where this field is used. It makes that resource available
-	// inside a container.
-	name: string @go(Name) @protobuf(1,bytes,opt)
 }
 
 // TerminationMessagePathDefault means the default path to capture the application termination message running in a container
@@ -2688,12 +2628,12 @@ import (
 	// +optional
 	workingDir?: string @go(WorkingDir) @protobuf(5,bytes,opt)
 
-	// List of ports to expose from the container. Not specifying a port here
+	// List of ports to expose from the container. Exposing a port here gives
+	// the system additional information about the network connections a
+	// container uses, but is primarily informational. Not specifying a port here
 	// DOES NOT prevent that port from being exposed. Any port which is
 	// listening on the default "0.0.0.0" address inside a container will be
 	// accessible from the network.
-	// Modifying this array with strategic merge patch may corrupt the data.
-	// For more information See https://github.com/kubernetes/kubernetes/issues/108255.
 	// Cannot be updated.
 	// +optional
 	// +patchMergeKey=containerPort
@@ -3042,8 +2982,7 @@ import (
 	#ContainersReady |
 	#PodInitialized |
 	#PodReady |
-	#PodScheduled |
-	#DisruptionTarget
+	#PodScheduled
 
 // ContainersReady indicates whether all containers in the pod are ready.
 #ContainersReady: #PodConditionType & "ContainersReady"
@@ -3058,25 +2997,9 @@ import (
 // PodScheduled represents status of the scheduling process for this pod.
 #PodScheduled: #PodConditionType & "PodScheduled"
 
-// DisruptionTarget indicates the pod is about to be terminated due to a
-// disruption (such as preemption, eviction API or garbage-collection).
-#DisruptionTarget: #PodConditionType & "DisruptionTarget"
-
 // PodReasonUnschedulable reason in PodScheduled PodCondition means that the scheduler
 // can't schedule the pod right now, for example due to insufficient resources in the cluster.
 #PodReasonUnschedulable: "Unschedulable"
-
-// PodReasonSchedulingGated reason in PodScheduled PodCondition means that the scheduler
-// skips scheduling the pod because one or more scheduling gates are still present.
-#PodReasonSchedulingGated: "SchedulingGated"
-
-// PodReasonSchedulerError reason in PodScheduled PodCondition means that some internal error happens
-// during scheduling, for example due to nodeAffinity parsing errors.
-#PodReasonSchedulerError: "SchedulerError"
-
-// TerminationByKubelet reason in DisruptionTarget pod condition indicates that the termination
-// is initiated by kubelet
-#PodReasonTerminationByKubelet: "TerminationByKubelet"
 
 // PodCondition contains details for the current condition of this pod.
 #PodCondition: {
@@ -3160,7 +3083,7 @@ import (
 // by the node selector terms.
 // +structType=atomic
 #NodeSelector: {
-	// Required. A list of node selector terms. The terms are ORed.
+	//Required. A list of node selector terms. The terms are ORed.
 	nodeSelectorTerms: [...#NodeSelectorTerm] @go(NodeSelectorTerms,[]NodeSelectorTerm) @protobuf(1,bytes,rep)
 }
 
@@ -3514,6 +3437,7 @@ import (
 	// pod to perform user-initiated actions such as debugging. This list cannot be specified when
 	// creating a pod, and it cannot be modified by updating the pod spec. In order to add an
 	// ephemeral container to an existing pod, use the pod's ephemeralcontainers subresource.
+	// This field is beta-level and available on clusters that haven't disabled the EphemeralContainers feature gate.
 	// +optional
 	// +patchMergeKey=name
 	// +patchStrategy=merge
@@ -3739,7 +3663,6 @@ import (
 	// If the OS field is set to windows, following fields must be unset:
 	// - spec.hostPID
 	// - spec.hostIPC
-	// - spec.hostUsers
 	// - spec.securityContext.seLinuxOptions
 	// - spec.securityContext.seccompProfile
 	// - spec.securityContext.fsGroup
@@ -3759,91 +3682,8 @@ import (
 	// - spec.containers[*].securityContext.runAsUser
 	// - spec.containers[*].securityContext.runAsGroup
 	// +optional
+	// This is a beta field and requires the IdentifyPodOS feature
 	os?: null | #PodOS @go(OS,*PodOS) @protobuf(36,bytes,opt)
-
-	// Use the host's user namespace.
-	// Optional: Default to true.
-	// If set to true or not present, the pod will be run in the host user namespace, useful
-	// for when the pod needs a feature only available to the host user namespace, such as
-	// loading a kernel module with CAP_SYS_MODULE.
-	// When set to false, a new userns is created for the pod. Setting false is useful for
-	// mitigating container breakout vulnerabilities even allowing users to run their
-	// containers as root without actually having root privileges on the host.
-	// This field is alpha-level and is only honored by servers that enable the UserNamespacesSupport feature.
-	// +k8s:conversion-gen=false
-	// +optional
-	hostUsers?: null | bool @go(HostUsers,*bool) @protobuf(37,bytes,opt)
-
-	// SchedulingGates is an opaque list of values that if specified will block scheduling the pod.
-	// More info:  https://git.k8s.io/enhancements/keps/sig-scheduling/3521-pod-scheduling-readiness.
-	//
-	// This is an alpha-level feature enabled by PodSchedulingReadiness feature gate.
-	// +optional
-	// +patchMergeKey=name
-	// +patchStrategy=merge
-	// +listType=map
-	// +listMapKey=name
-	schedulingGates?: [...#PodSchedulingGate] @go(SchedulingGates,[]PodSchedulingGate) @protobuf(38,bytes,opt)
-
-	// ResourceClaims defines which ResourceClaims must be allocated
-	// and reserved before the Pod is allowed to start. The resources
-	// will be made available to those containers which consume them
-	// by name.
-	//
-	// This is an alpha field and requires enabling the
-	// DynamicResourceAllocation feature gate.
-	//
-	// This field is immutable.
-	//
-	// +patchMergeKey=name
-	// +patchStrategy=merge,retainKeys
-	// +listType=map
-	// +listMapKey=name
-	// +featureGate=DynamicResourceAllocation
-	// +optional
-	resourceClaims?: [...#PodResourceClaim] @go(ResourceClaims,[]PodResourceClaim) @protobuf(39,bytes,rep)
-}
-
-// PodResourceClaim references exactly one ResourceClaim through a ClaimSource.
-// It adds a name to it that uniquely identifies the ResourceClaim inside the Pod.
-// Containers that need access to the ResourceClaim reference it with this name.
-#PodResourceClaim: {
-	// Name uniquely identifies this resource claim inside the pod.
-	// This must be a DNS_LABEL.
-	name: string @go(Name) @protobuf(1,bytes)
-
-	// Source describes where to find the ResourceClaim.
-	source?: #ClaimSource @go(Source) @protobuf(2,bytes)
-}
-
-// ClaimSource describes a reference to a ResourceClaim.
-//
-// Exactly one of these fields should be set.  Consumers of this type must
-// treat an empty object as if it has an unknown value.
-#ClaimSource: {
-	// ResourceClaimName is the name of a ResourceClaim object in the same
-	// namespace as this pod.
-	resourceClaimName?: null | string @go(ResourceClaimName,*string) @protobuf(1,bytes,opt)
-
-	// ResourceClaimTemplateName is the name of a ResourceClaimTemplate
-	// object in the same namespace as this pod.
-	//
-	// The template will be used to create a new ResourceClaim, which will
-	// be bound to this pod. When this pod is deleted, the ResourceClaim
-	// will also be deleted. The name of the ResourceClaim will be <pod
-	// name>-<resource name>, where <resource name> is the
-	// PodResourceClaim.Name. Pod validation will reject the pod if the
-	// concatenated name is not valid for a ResourceClaim (e.g. too long).
-	//
-	// An existing ResourceClaim with that name that is not owned by the
-	// pod will not be used for the pod to avoid using an unrelated
-	// resource by mistake. Scheduling and pod startup are then blocked
-	// until the unrelated ResourceClaim is removed.
-	//
-	// This field is immutable and no changes will be made to the
-	// corresponding ResourceClaim by the control plane after creating the
-	// ResourceClaim.
-	resourceClaimTemplateName?: null | string @go(ResourceClaimTemplateName,*string) @protobuf(2,bytes,opt)
 }
 
 // OSName is the set of OS'es that can be used in OS.
@@ -3865,13 +3705,6 @@ import (
 	name: #OSName @go(Name) @protobuf(1,bytes,opt)
 }
 
-// PodSchedulingGate is associated to a Pod to guard its scheduling.
-#PodSchedulingGate: {
-	// Name of the scheduling gate.
-	// Each scheduling gate must have a unique name field.
-	name: string @go(Name) @protobuf(1,bytes,opt)
-}
-
 // +enum
 #UnsatisfiableConstraintAction: string // #enumUnsatisfiableConstraintAction
 
@@ -3886,20 +3719,6 @@ import (
 // ScheduleAnyway instructs the scheduler to schedule the pod
 // even if constraints are not satisfied.
 #ScheduleAnyway: #UnsatisfiableConstraintAction & "ScheduleAnyway"
-
-// NodeInclusionPolicy defines the type of node inclusion policy
-// +enum
-#NodeInclusionPolicy: string // #enumNodeInclusionPolicy
-
-#enumNodeInclusionPolicy:
-	#NodeInclusionPolicyIgnore |
-	#NodeInclusionPolicyHonor
-
-// NodeInclusionPolicyIgnore means ignore this scheduling directive when calculating pod topology spread skew.
-#NodeInclusionPolicyIgnore: #NodeInclusionPolicy & "Ignore"
-
-// NodeInclusionPolicyHonor means use this scheduling directive when calculating pod topology spread skew.
-#NodeInclusionPolicyHonor: #NodeInclusionPolicy & "Honor"
 
 // TopologySpreadConstraint specifies how to spread matching pods among the given topology.
 #TopologySpreadConstraint: {
@@ -3930,8 +3749,7 @@ import (
 	// We consider each <key, value> as a "bucket", and try to put balanced number
 	// of pods into each bucket.
 	// We define a domain as a particular instance of a topology.
-	// Also, we define an eligible domain as a domain whose nodes meet the requirements of
-	// nodeAffinityPolicy and nodeTaintsPolicy.
+	// Also, we define an eligible domain as a domain whose nodes match the node selector.
 	// e.g. If TopologyKey is "kubernetes.io/hostname", each Node is a domain of that topology.
 	// And, if TopologyKey is "topology.kubernetes.io/zone", each zone is a domain of that topology.
 	// It's a required field.
@@ -3989,40 +3807,9 @@ import (
 	// because computed skew will be 3(3 - 0) if new Pod is scheduled to any of the three zones,
 	// it will violate MaxSkew.
 	//
-	// This is a beta field and requires the MinDomainsInPodTopologySpread feature gate to be enabled (enabled by default).
+	// This is an alpha field and requires enabling MinDomainsInPodTopologySpread feature gate.
 	// +optional
 	minDomains?: null | int32 @go(MinDomains,*int32) @protobuf(5,varint,opt)
-
-	// NodeAffinityPolicy indicates how we will treat Pod's nodeAffinity/nodeSelector
-	// when calculating pod topology spread skew. Options are:
-	// - Honor: only nodes matching nodeAffinity/nodeSelector are included in the calculations.
-	// - Ignore: nodeAffinity/nodeSelector are ignored. All nodes are included in the calculations.
-	//
-	// If this value is nil, the behavior is equivalent to the Honor policy.
-	// This is a beta-level feature default enabled by the NodeInclusionPolicyInPodTopologySpread feature flag.
-	// +optional
-	nodeAffinityPolicy?: null | #NodeInclusionPolicy @go(NodeAffinityPolicy,*NodeInclusionPolicy) @protobuf(6,bytes,opt)
-
-	// NodeTaintsPolicy indicates how we will treat node taints when calculating
-	// pod topology spread skew. Options are:
-	// - Honor: nodes without taints, along with tainted nodes for which the incoming pod
-	// has a toleration, are included.
-	// - Ignore: node taints are ignored. All nodes are included.
-	//
-	// If this value is nil, the behavior is equivalent to the Ignore policy.
-	// This is a beta-level feature default enabled by the NodeInclusionPolicyInPodTopologySpread feature flag.
-	// +optional
-	nodeTaintsPolicy?: null | #NodeInclusionPolicy @go(NodeTaintsPolicy,*NodeInclusionPolicy) @protobuf(7,bytes,opt)
-
-	// MatchLabelKeys is a set of pod label keys to select the pods over which
-	// spreading will be calculated. The keys are used to lookup values from the
-	// incoming pod labels, those key-value labels are ANDed with labelSelector
-	// to select the group of existing pods over which spreading will be calculated
-	// for the incoming pod. Keys that don't exist in the incoming pod labels will
-	// be ignored. A null or empty list means only match against labelSelector.
-	// +listType=atomic
-	// +optional
-	matchLabelKeys?: [...string] @go(MatchLabelKeys,[]string) @protobuf(8,bytes,opt)
 }
 
 // The default value for enableServiceLinks attribute.
@@ -4106,11 +3893,8 @@ import (
 	runAsNonRoot?: null | bool @go(RunAsNonRoot,*bool) @protobuf(3,varint,opt)
 
 	// A list of groups applied to the first process run in each container, in addition
-	// to the container's primary GID, the fsGroup (if specified), and group memberships
-	// defined in the container image for the uid of the container process. If unspecified,
-	// no additional groups are added to any container. Note that group memberships
-	// defined in the container image for the uid of the container process are still effective,
-	// even if they are not included in this list.
+	// to the container's primary GID.  If unspecified, no groups will be added to
+	// any container.
 	// Note that this field cannot be set when spec.os.name is windows.
 	// +optional
 	supplementalGroups?: [...int64] @go(SupplementalGroups,[]int64) @protobuf(4,varint,rep)
@@ -4242,8 +4026,7 @@ import (
 
 // IP address information for entries in the (plural) PodIPs field.
 // Each entry includes:
-//
-// IP: An IP address allocated to the pod. Routable at least within the cluster.
+//    IP: An IP address allocated to the pod. Routable at least within the cluster.
 #PodIP: {
 	// ip is an IP address (IPv4 or IPv6) assigned to the pod
 	ip?: string @go(IP) @protobuf(1,bytes,opt)
@@ -4413,6 +4196,8 @@ import (
 //
 // To add an ephemeral container, use the ephemeralcontainers subresource of an existing
 // Pod. Ephemeral containers may not be removed or restarted.
+//
+// This is a beta feature available on clusters that haven't disabled the EphemeralContainers feature gate.
 #EphemeralContainer: {
 	#EphemeralContainerCommon
 
@@ -4517,6 +4302,7 @@ import (
 	qosClass?: #PodQOSClass @go(QOSClass) @protobuf(9,bytes,rep)
 
 	// Status for any ephemeral containers that have run in this pod.
+	// This field is beta-level and available on clusters that haven't disabled the EphemeralContainers feature gate.
 	// +optional
 	ephemeralContainerStatuses?: [...#ContainerStatus] @go(EphemeralContainerStatuses,[]ContainerStatus) @protobuf(13,bytes,rep)
 }
@@ -4652,7 +4438,7 @@ import (
 // ReplicationControllerStatus represents the current status of a replication
 // controller.
 #ReplicationControllerStatus: {
-	// Replicas is the most recently observed number of replicas.
+	// Replicas is the most recently oberved number of replicas.
 	// More info: https://kubernetes.io/docs/concepts/workloads/controllers/replicationcontroller#what-is-a-replicationcontroller
 	replicas: int32 @go(Replicas) @protobuf(1,varint,opt)
 
@@ -4808,8 +4594,8 @@ import (
 // record, with no exposing or proxying of any pods involved.
 #ServiceTypeExternalName: #ServiceType & "ExternalName"
 
-// ServiceInternalTrafficPolicyType describes how nodes distribute service traffic they
-// receive on the ClusterIP.
+// ServiceInternalTrafficPolicyType describes the type of traffic routing for
+// internal traffic
 // +enum
 #ServiceInternalTrafficPolicyType: string // #enumServiceInternalTrafficPolicyType
 
@@ -4817,30 +4603,26 @@ import (
 	#ServiceInternalTrafficPolicyCluster |
 	#ServiceInternalTrafficPolicyLocal
 
-// ServiceInternalTrafficPolicyCluster routes traffic to all endpoints.
+// ServiceInternalTrafficPolicyCluster routes traffic to all endpoints
 #ServiceInternalTrafficPolicyCluster: #ServiceInternalTrafficPolicyType & "Cluster"
 
-// ServiceInternalTrafficPolicyLocal routes traffic only to endpoints on the same
-// node as the client pod (dropping the traffic if there are no local endpoints).
+// ServiceInternalTrafficPolicyLocal only routes to node-local
+// endpoints, otherwise drops the traffic
 #ServiceInternalTrafficPolicyLocal: #ServiceInternalTrafficPolicyType & "Local"
 
-// ServiceExternalTrafficPolicyType describes how nodes distribute service traffic they
-// receive on one of the Service's "externally-facing" addresses (NodePorts, ExternalIPs,
-// and LoadBalancer IPs).
+// Service External Traffic Policy Type string
 // +enum
 #ServiceExternalTrafficPolicyType: string // #enumServiceExternalTrafficPolicyType
 
 #enumServiceExternalTrafficPolicyType:
-	#ServiceExternalTrafficPolicyTypeCluster |
-	#ServiceExternalTrafficPolicyTypeLocal
+	#ServiceExternalTrafficPolicyTypeLocal |
+	#ServiceExternalTrafficPolicyTypeCluster
 
-// ServiceExternalTrafficPolicyTypeCluster routes traffic to all endpoints.
-#ServiceExternalTrafficPolicyTypeCluster: #ServiceExternalTrafficPolicyType & "Cluster"
-
-// ServiceExternalTrafficPolicyTypeLocal preserves the source IP of the traffic by
-// routing only to endpoints on the same node as the traffic was received on
-// (dropping the traffic if there are no local endpoints).
+// ServiceExternalTrafficPolicyTypeLocal specifies node-local endpoints behavior.
 #ServiceExternalTrafficPolicyTypeLocal: #ServiceExternalTrafficPolicyType & "Local"
+
+// ServiceExternalTrafficPolicyTypeCluster specifies node-global (legacy) behavior.
+#ServiceExternalTrafficPolicyTypeCluster: #ServiceExternalTrafficPolicyType & "Cluster"
 
 // LoadBalancerPortsError represents the condition of the requested ports
 // on the cloud load balancer instance.
@@ -4905,11 +4687,11 @@ import (
 // IPv6Protocol indicates that this IP is IPv6 protocol
 #IPv6Protocol: #IPFamily & "IPv6"
 
-// IPFamilyPolicy represents the dual-stack-ness requested or required by a Service
+// IPFamilyPolicyType represents the dual-stack-ness requested or required by a Service
 // +enum
-#IPFamilyPolicy: string // #enumIPFamilyPolicy
+#IPFamilyPolicyType: string // #enumIPFamilyPolicyType
 
-#enumIPFamilyPolicy:
+#enumIPFamilyPolicyType:
 	#IPFamilyPolicySingleStack |
 	#IPFamilyPolicyPreferDualStack |
 	#IPFamilyPolicyRequireDualStack
@@ -4917,14 +4699,14 @@ import (
 // IPFamilyPolicySingleStack indicates that this service is required to have a single IPFamily.
 // The IPFamily assigned is based on the default IPFamily used by the cluster
 // or as identified by service.spec.ipFamilies field
-#IPFamilyPolicySingleStack: #IPFamilyPolicy & "SingleStack"
+#IPFamilyPolicySingleStack: #IPFamilyPolicyType & "SingleStack"
 
 // IPFamilyPolicyPreferDualStack indicates that this service prefers dual-stack when
 // the cluster is configured for dual-stack. If the cluster is not configured
 // for dual-stack the service will be assigned a single IPFamily. If the IPFamily is not
 // set in service.spec.ipFamilies then the service will be assigned the default IPFamily
 // configured on the cluster
-#IPFamilyPolicyPreferDualStack: #IPFamilyPolicy & "PreferDualStack"
+#IPFamilyPolicyPreferDualStack: #IPFamilyPolicyType & "PreferDualStack"
 
 // IPFamilyPolicyRequireDualStack indicates that this service requires dual-stack. Using
 // IPFamilyPolicyRequireDualStack on a single stack cluster will result in validation errors. The
@@ -4932,16 +4714,7 @@ import (
 // service.spec.ipFamilies was not provided then it will be assigned according to how they are
 // configured on the cluster. If service.spec.ipFamilies has only one entry then the alternative
 // IPFamily will be added by apiserver
-#IPFamilyPolicyRequireDualStack: #IPFamilyPolicy & "RequireDualStack"
-
-// for backwards compat
-// +enum
-#IPFamilyPolicyType: #IPFamilyPolicy // #enumIPFamilyPolicyType
-
-#enumIPFamilyPolicyType:
-	#IPFamilyPolicySingleStack |
-	#IPFamilyPolicyPreferDualStack |
-	#IPFamilyPolicyRequireDualStack
+#IPFamilyPolicyRequireDualStack: #IPFamilyPolicyType & "RequireDualStack"
 
 // ServiceSpec describes the attributes that a user creates on a service.
 #ServiceSpec: {
@@ -5069,19 +4842,12 @@ import (
 	// +optional
 	externalName?: string @go(ExternalName) @protobuf(10,bytes,opt)
 
-	// externalTrafficPolicy describes how nodes distribute service traffic they
-	// receive on one of the Service's "externally-facing" addresses (NodePorts,
-	// ExternalIPs, and LoadBalancer IPs). If set to "Local", the proxy will configure
-	// the service in a way that assumes that external load balancers will take care
-	// of balancing the service traffic between nodes, and so each node will deliver
-	// traffic only to the node-local endpoints of the service, without masquerading
-	// the client source IP. (Traffic mistakenly sent to a node with no endpoints will
-	// be dropped.) The default value, "Cluster", uses the standard behavior of
-	// routing to all endpoints evenly (possibly modified by topology and other
-	// features). Note that traffic sent to an External IP or LoadBalancer IP from
-	// within the cluster will always get "Cluster" semantics, but clients sending to
-	// a NodePort from within the cluster may need to take traffic policy into account
-	// when picking a node.
+	// externalTrafficPolicy denotes if this Service desires to route external
+	// traffic to node-local or cluster-wide endpoints. "Local" preserves the
+	// client source IP and avoids a second hop for LoadBalancer and Nodeport
+	// type services, but risks potentially imbalanced traffic spreading.
+	// "Cluster" obscures the client source IP and may cause a second hop to
+	// another node, but should have good overall load-spreading.
 	// +optional
 	externalTrafficPolicy?: #ServiceExternalTrafficPolicyType @go(ExternalTrafficPolicy) @protobuf(11,bytes,opt)
 
@@ -5094,7 +4860,6 @@ import (
 	// service or not.  If this field is specified when creating a Service
 	// which does not need it, creation will fail. This field will be wiped
 	// when updating a Service to no longer need it (e.g. changing type).
-	// This field cannot be updated once set.
 	// +optional
 	healthCheckNodePort?: int32 @go(HealthCheckNodePort) @protobuf(12,bytes,opt)
 
@@ -5142,7 +4907,7 @@ import (
 	// ipFamilies and clusterIPs fields depend on the value of this field. This
 	// field will be wiped when updating a service to type ExternalName.
 	// +optional
-	ipFamilyPolicy?: null | #IPFamilyPolicy @go(IPFamilyPolicy,*IPFamilyPolicy) @protobuf(17,bytes,opt,casttype=IPFamilyPolicy)
+	ipFamilyPolicy?: null | #IPFamilyPolicyType @go(IPFamilyPolicy,*IPFamilyPolicyType) @protobuf(17,bytes,opt,casttype=IPFamilyPolicyType)
 
 	// allocateLoadBalancerNodePorts defines if NodePorts will be automatically
 	// allocated for services with type LoadBalancer.  Default is "true". It
@@ -5164,15 +4929,17 @@ import (
 	// implementation (e.g. cloud providers) should ignore Services that set this field.
 	// This field can only be set when creating or updating a Service to type 'LoadBalancer'.
 	// Once set, it can not be changed. This field will be wiped when a service is updated to a non 'LoadBalancer' type.
+	// +featureGate=LoadBalancerClass
 	// +optional
 	loadBalancerClass?: null | string @go(LoadBalancerClass,*string) @protobuf(21,bytes,opt)
 
-	// InternalTrafficPolicy describes how nodes distribute service traffic they
-	// receive on the ClusterIP. If set to "Local", the proxy will assume that pods
-	// only want to talk to endpoints of the service on the same node as the pod,
-	// dropping the traffic if there are no local endpoints. The default value,
-	// "Cluster", uses the standard behavior of routing to all endpoints evenly
-	// (possibly modified by topology and other features).
+	// InternalTrafficPolicy specifies if the cluster internal traffic
+	// should be routed to all endpoints or node-local endpoints only.
+	// "Cluster" routes internal traffic to a Service to all endpoints.
+	// "Local" routes traffic to node-local endpoints only, traffic is
+	// dropped if no node-local endpoints are ready.
+	// The default value is "Cluster".
+	// +featureGate=ServiceInternalTrafficPolicy
 	// +optional
 	internalTrafficPolicy?: null | #ServiceInternalTrafficPolicyType @go(InternalTrafficPolicy,*ServiceInternalTrafficPolicyType) @protobuf(22,bytes,opt)
 }
@@ -5320,18 +5087,17 @@ import (
 }
 
 // Endpoints is a collection of endpoints that implement the actual service. Example:
-//
-//  Name: "mysvc",
-//  Subsets: [
-//    {
-//      Addresses: [{"ip": "10.10.1.1"}, {"ip": "10.10.2.2"}],
-//      Ports: [{"name": "a", "port": 8675}, {"name": "b", "port": 309}]
-//    },
-//    {
-//      Addresses: [{"ip": "10.10.3.3"}],
-//      Ports: [{"name": "a", "port": 93}, {"name": "b", "port": 76}]
-//    },
-// ]
+//   Name: "mysvc",
+//   Subsets: [
+//     {
+//       Addresses: [{"ip": "10.10.1.1"}, {"ip": "10.10.2.2"}],
+//       Ports: [{"name": "a", "port": 8675}, {"name": "b", "port": 309}]
+//     },
+//     {
+//       Addresses: [{"ip": "10.10.3.3"}],
+//       Ports: [{"name": "a", "port": 93}, {"name": "b", "port": 76}]
+//     },
+//  ]
 #Endpoints: {
 	metav1.#TypeMeta
 
@@ -5354,16 +5120,13 @@ import (
 // EndpointSubset is a group of addresses with a common set of ports. The
 // expanded set of endpoints is the Cartesian product of Addresses x Ports.
 // For example, given:
-//
-// {
-//   Addresses: [{"ip": "10.10.1.1"}, {"ip": "10.10.2.2"}],
-//   Ports:     [{"name": "a", "port": 8675}, {"name": "b", "port": 309}]
-// }
-//
+//   {
+//     Addresses: [{"ip": "10.10.1.1"}, {"ip": "10.10.2.2"}],
+//     Ports:     [{"name": "a", "port": 8675}, {"name": "b", "port": 309}]
+//   }
 // The resulting set of endpoints can be viewed as:
-//
-// a: [ 10.10.1.1:8675, 10.10.2.2:8675 ],
-// b: [ 10.10.1.1:309, 10.10.2.2:309 ]
+//     a: [ 10.10.1.1:8675, 10.10.2.2:8675 ],
+//     b: [ 10.10.1.1:309, 10.10.2.2:309 ]
 #EndpointSubset: {
 	// IP addresses which offer the related ports that are marked as ready. These endpoints
 	// should be considered safe for load balancers and clients to utilize.
@@ -5473,7 +5236,7 @@ import (
 	// +optional
 	taints?: [...#Taint] @go(Taints,[]Taint) @protobuf(5,bytes,opt)
 
-	// Deprecated: Previously used to specify the source of the node's configuration for the DynamicKubeletConfig feature. This feature is removed.
+	// Deprecated: Previously used to specify the source of the node's configuration for the DynamicKubeletConfig feature. This feature is removed from Kubelets as of 1.24 and will be fully removed in 1.26.
 	// +optional
 	configSource?: null | #NodeConfigSource @go(ConfigSource,*NodeConfigSource) @protobuf(6,bytes,opt)
 
@@ -5646,7 +5409,7 @@ import (
 	// More info: https://kubernetes.io/docs/concepts/nodes/node/#addresses
 	// Note: This field is declared as mergeable, but the merge key is not sufficiently
 	// unique, which can cause data corruption when it is merged. Callers should instead
-	// use a full-replacement patch. See https://pr.k8s.io/79391 for an example.
+	// use a full-replacement patch. See http://pr.k8s.io/79391 for an example.
 	// +optional
 	// +patchMergeKey=type
 	// +patchStrategy=merge
@@ -5728,7 +5491,7 @@ import (
 // Describe a container image
 #ContainerImage: {
 	// Names by which this image is known.
-	// e.g. ["kubernetes.example/hyperkube:v1.0.7", "cloud-vendor.registry.example/cloud-vendor/hyperkube:v1.0.7"]
+	// e.g. ["k8s.gcr.io/hyperkube:v1.0.7", "dockerhub.io/google_containers/hyperkube:v1.0.7"]
 	// +optional
 	names: [...string] @go(Names,[]string) @protobuf(1,bytes,rep)
 
@@ -6276,7 +6039,6 @@ import (
 //     and the version of the actual struct is irrelevant.
 //  5. We cannot easily change it.  Because this type is embedded in many locations, updates to this type
 //     will affect numerous schemas.  Don't make new APIs embed an underspecified API type they do not control.
-//
 // Instead of using this type, create a locally provided and used type that is well-focused on your reference.
 // For example, ServiceReferences for admission registration: https://github.com/kubernetes/api/blob/release-1.17/admissionregistration/v1/types.go#L533 .
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
