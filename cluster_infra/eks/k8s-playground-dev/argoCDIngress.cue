@@ -6,6 +6,9 @@ package kube
 // AWS LB Ingress Controller Docs
 // https://docs.aws.amazon.com/eks/latest/userguide/alb-ingress.html
 
+
+// Probably not actually going to use this, as the helm chart can set it all up
+
 kubernetes: ingress: argoCD: {
 	apiVersion: "networking.k8s.io/v1"
 	metadata: {
