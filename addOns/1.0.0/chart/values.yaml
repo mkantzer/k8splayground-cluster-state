@@ -73,7 +73,7 @@ externalDns:
   enable: false
   createNamespace: true
   serviceAccountName:
-  zoneIdFilter:
+  domainFilters: []
 
 # External Secrets Operator
 externalSecrets:

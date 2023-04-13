@@ -22,7 +22,10 @@ spec:
       - name: external-dns.serviceAccount.name
         value: {{ .Values.externalDns.serviceAccountName }}
       - name: external-dns.domainFilters
-        value: {{ .Values.externalDns.domainFilter }}
+        value: 
+          {{- range .Values.externalDns.domainFilters }}
+          - {{ . }}
+          {{- end }}
   destination:
     server: {{ .Values.destinationServer | default "https://kubernetes.default.svc" }}
     namespace: external-dns
