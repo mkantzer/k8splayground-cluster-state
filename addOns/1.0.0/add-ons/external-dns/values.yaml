@@ -1,4 +1,5 @@
 external-dns:
+  logFormat: "json"
   serviceAccount:
     create: false
     name: "external-dns-sa"
