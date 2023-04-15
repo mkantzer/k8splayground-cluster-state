@@ -19,8 +19,8 @@ spec:
       parameters:
       - name: external-dns.aws.region
         value: {{ .Values.region }}
-      - name: external-dns.serviceAccount.name
-        value: {{ .Values.externalDns.serviceAccountName }}
+      # - name: external-dns.serviceAccount.name
+      #   value: {{ .Values.externalDns.serviceAccountName }}
   destination:
     server: {{ .Values.destinationServer | default "https://kubernetes.default.svc" }}
     namespace: external-dns

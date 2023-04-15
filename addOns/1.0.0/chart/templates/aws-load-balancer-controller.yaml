@@ -17,9 +17,9 @@ spec:
         aws-load-balancer-controller:
           clusterName: {{ .Values.clusterName }}
           region: {{ .Values.region }}
-          serviceAccount:
-            name: {{ .Values.awsLoadBalancerController.serviceAccountName }}
-            create: false
+          # serviceAccount:
+          #   name: {{ .Values.awsLoadBalancerController.serviceAccountName }}
+          #   create: false
           vpcId: {{ .Values.valuesFromTF.vpcId }}
         {{- toYaml .Values.awsLoadBalancerController | nindent 10 }}
   destination:
