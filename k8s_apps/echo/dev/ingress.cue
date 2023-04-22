@@ -7,9 +7,12 @@ kubernetes: ingress: echo: {
 		namespace: "echo"
 		labels: env: "dev"
 		annotations: {
-			"alb.ingress.kubernetes.io/scheme":               "internet-facing"
-			"alb.ingress.kubernetes.io/target-type":          "ip"
-			"alb.ingress.kubernetes.io/listen-ports":         "[{\"HTTP\": 80}, {\"HTTPS\":443}]"
+			"alb.ingress.kubernetes.io/scheme":       "internet-facing"
+			"alb.ingress.kubernetes.io/target-type":  "ip"
+			"alb.ingress.kubernetes.io/listen-ports": json.Marshal([
+									{HTTP:  80},
+									{HTTPS: 443},
+			])
 			"alb.ingress.kubernetes.io/actions.ssl-redirect": json.Marshal({
 				Type: "redirect"
 				RedirectConfig: {

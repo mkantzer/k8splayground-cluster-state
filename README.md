@@ -9,12 +9,20 @@ The majority of the files in this module belong to the `kube` _package_.
 Each valid working directory (ex: k8s_apps/[appName]/[environment], or similar for infra) is an INSTANCE. Each `instance` contains the working directory, as well as all ancestor directories within the module. 
 
 Using this approach, the different kind of directories within a module can be ascribed the following roles:
-- module root: schema
+- module root: schema assembly
 - medial directories: policy
 - leaf directories: data
 
 > **Note**
 > Almost every `cue cmd` command in this repo will expect to be run from an instance.
+
+### `mikeApp` and the `schema/` directory
+
+`schema/` houses my attempt at a simplified abstraction schema, that can be auto-inflated into a suite of kubernetes manifests. The primary goal is to allow developers to configure only the things they truly care about, while also enforcing/granting best practices from a platform level. EX: developer's don't really care about the intricacies of a `horizontal pod autoscaler`, they simply care about what metric causes their app to scale.
+
+This system should also reduce boilerplate within a given application's `cluster-state` definitions, to decrease the likelihood of a misconfiguration.
+
+The directory itself is structured to allow multiple _types_ of abstraction layers, and to allow those layers themselves to be versioned. 
 
 ## Instances
 
@@ -23,7 +31,6 @@ Using this approach, the different kind of directories within a module can be as
 - **k8s_apps/app3/[environment]**: demonstrates how you can move components up towards root to reduce duplicate boilerplate. It also makes use of `cue.mod/usr` merging, to impose additional schema restrictions and further reduce boilerplate.
 
 > **TODO:** - **k8s_apps/appFour/[environment]**: demonstrates how additional schema and transformers can be introduced to provide a more concise interface to users
-
 
 ## Tasks
 
