@@ -29,27 +29,27 @@ testValues: "lol"
       ...
     }
    }
-  //  spec: {
-  //   // `fleet` represents the persistent processors of the application.
-  //   // This can be thought of as an abstraction above a "deployment", where pods are
-  //   // expected to always be available. This is in contrast to `jobs`, which are expected
-  //   // to exit with success once finished.
-  //   fleet: [Name=_]: {
-  //     name: Name
-  //     replicas: *3 | int
-  //     imageName: "mkantzer/\(metadata.name)/\(Name)"
-  //     imageTag: string | *"latest" // probably shouldn't default to latest
-  //     envVars: [Key=_]: string // user-defined vars
-  //     // networking: [PortName=_]: {
-  //     //   ingress?: {
-  //     //     public: bool | *false
-  //     //     externalPort: int
-  //     //     externalPath: string | *"/"
-  //     //     internalPath: string | *"/"
-  //     //   }
-  //     // }
-  //   }
-  //  }
+   spec: {
+    // `fleet` represents the persistent processors of the application.
+    // This can be thought of as an abstraction above a "deployment", where pods are
+    // expected to always be available.
+    // This is in contrast to `jobs`, which are expected to exit with success once finished.
+    fleet: [Name=_]: {
+      name: Name // should I define this elsewhere?
+      replicas: *3 | int
+      imageName: string | *"mkantzer/\(metadata.name)/\(Name)"
+      imageTag: string | *"latest" // probably shouldn't default to latest
+      envVars: [Key=_]: string // user-defined vars
+      // networking: [PortName=_]: {
+      //   ingress?: {
+      //     public: bool | *false
+      //     externalPort: int
+      //     externalPath: string | *"/"
+      //     internalPath: string | *"/"
+      //   }
+      // }
+    }
+   }
    outputs: {
     examples: {
       name: metadata.name
