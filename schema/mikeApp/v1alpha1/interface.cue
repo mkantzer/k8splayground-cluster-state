@@ -1,7 +1,6 @@
 package v1alpha1
 
-// This file houses the primary definitions for the external-facing
-// components of this package.
+// This file houses the primary definitions for the external-facing components.
 
 // Input values are processed in other files, and then collected here into
 // the final output object.
@@ -13,6 +12,9 @@ testValues: "lol"
   input: string
   output: input
 }
+
+// Internal object init, for use within package
+mikeApp: #MikeApp
 
 // Primary Schema Definition:
 #MikeApp: {
