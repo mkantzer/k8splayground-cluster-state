@@ -1,62 +1,68 @@
 package v1alpha1
 
-// import (
-//   	apps_v1 "k8s.io/api/apps/v1"
-// )
+import (
+	apps_v1 "k8s.io/api/apps/v1"
+)
 
-#DeploymentsOutput: {
-  // kubernetes: deployment: [string]: apps_v1.#Deployment
-  #Spec
-}
+_#DeploymentsOutput: deployment: [string]: apps_v1.#Deployment
 
-#DeploymentsTransform: {
-  // Inputs for the caller
-  metadata: #Metadata
-  spec: #Spec
+_#DeploymentsGenerator: {
+	// Input for the caller
+	X1="in": #Input
+	// Output for the caller
+	out: _#DeploymentsOutput
 
-  // Output for the caller
-  out: #DeploymentsOutput
-
-  // intermediate fields
-  for f in spec.fleet {
-    _deployments: "\(metadata.name)-\(f.name)": {
-      	metadata: labels: {
-				repo: metadata.labels.repo
-				team: metadata.labels.team
-				env:  metadata.labels.env
+	// Intermediate fields
+	// Primary deployment generation
+	_deployments: {
+		for k, v in X1.spec.fleet {
+			let Name = "\(X1.metadata.name)-\(k)"
+			let NonNameLabels = {for k, v in X1.metadata.labels if k != "name" {"\(k)": v}}
+			"\(Name)": {
+				apiVersion: "apps/v1"
+				kind:       "Deployment"
+				metadata: {
+					name: Name
+					labels: {
+						name: Name
+						NonNameLabels
+					}
+				}
+				spec: {
+					replicas:             v.replicas
+					minReadySeconds:      10
+					revisionHistoryLimit: 10
+					selector: matchLabels: {
+						name: Name
+						NonNameLabels
+					}
+					template: {
+						metadata: labels: {
+							name: Name
+							NonNameLabels
+						}
+						spec: containers: [{
+							name:            k
+							image:           "\(v.imageName):\(v.imageTag)"
+							imagePullPolicy: "IfNotPresent"
+							env: {[
+								for n, c in v.envVars {
+									name:  n
+									value: c
+								}]
+							}
+						}]
+					}
+				}
 			}
-			spec: {
-				replicas: f.replicas
-				template: spec: containers: [{
-					name:  f.name
-					image: "\(f.imageName):\(f.imageTag)"
-					env: [ for k, v in f.envVars {
-						name:  k
-						value: v
-					}]
-				}]
-			}
-    }
-  }
+		}
+	}
 
-
-  // set output
-  // out: kubernetes: {
-  //   deployment: _deployments
-  // }
-  out: spec
+	// Set output
+	out: {
+		deployment: _deployments
+	}
 }
-
-
-
-
-
-
-
-
-
-
-
 
 // #MikeApp: outputs: kubernetes: deployment: {
 //   for f in mikeApp.spec.fleet {
@@ -77,7 +83,6 @@ package v1alpha1
 //     }
 //   }
 // }
-
 
 // _#Deployments: {
 //   input: {

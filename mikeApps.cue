@@ -1,18 +1,20 @@
 package kube
 
 import (
-	mikeApp_v1alpha1 "github.com/mkantzer/k8splayground-cluster-state/schema/mikeApp/v1alpha1:v1alpha1"
+	mikeApp_v1alpha1 "github.com/mkantzer/k8splayground-cluster-state/schema/mikeApp/v1alpha1"
 )
 
-// Primary Declaration
-// mikeApp: mikeApp_v1alpha1.#MikeApp // | mikeApp_v1alpha2.#MikeApp
-mikeApp?: mikeApp_v1alpha1.#MikeApp // | mikeApp_v1alpha2.#MikeApp
+// Format validation
+mikeApp: mikeApp_v1alpha1.#App // | mikeApp_v1alpha2.#App
 
-// Example of accessing output.
-mikeAppOutputs: mikeApp.outputs // <- process into k8s objects?
+// Call functions
+appGenerator: mikeApp_v1alpha1.#Generator & {in: {
+	metadata: mikeApp.metadata
+	spec:     mikeApp.spec
+}}
 
-// for f in mikeApp.spec.fleet {
-//     "\(mikeApp.metadata.name)-\(f.name)": {
-//       test: "yes"
-//     }
-// }
+// Handle output
+kubernetes: {
+	appGenerator.out.kubernetes
+	...
+}
