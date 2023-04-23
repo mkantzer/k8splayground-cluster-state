@@ -13,20 +13,20 @@ package v1alpha1
 // Internal object init, for use within package
 // mikeApp: #MikeApp
 
-_#Metadata: {
+#Metadata: {
 	name: string
 	labels: [string]: string
 }
 
-_#Spec: {
-	fleet: [string]: _#Fleet
+#Spec: {
+	fleet: [string]: #Fleet
 }
 
 // `fleet` represents the persistent processors of the application.
 // This can be thought of as an abstraction above a "deployment", where pods are
 // expected to always be available.
 // This is in contrast to `jobs`, which are expected to exit with success once finished.
-_#Fleet: {
+#Fleet: {
 	name:      string
 	replicas:  int
 	imageName: string
@@ -38,7 +38,7 @@ _#Fleet: {
 #MikeApp: {
 	apiVersion: "v1alpha1"
 	kind:       "MikeApp"
-	metadata:   _#Metadata & {
+	metadata:   #Metadata & {
 		name: string
 		labels: {
 			name: metadata.name // Should I define this elsewhere?
@@ -48,7 +48,7 @@ _#Fleet: {
 			...
 		}
 	}
-	spec: _#Spec & {
+	spec: #Spec & {
 		fleet: [Name=_]: {
 			name:      Name // should I define this elsewhere?
 			replicas:  int | *3
@@ -67,7 +67,8 @@ _#Fleet: {
 		}
 	}
 	outputs: {
-		spec.fleet
+		// spec
+		result: #DeploymentsTransform & {metadata: metadata, spec: spec}
 
 		// kubernetes: {...}
 		...

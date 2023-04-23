@@ -1,28 +1,50 @@
 package v1alpha1
 
-import (
-  	apps_v1 "k8s.io/api/apps/v1"
-)
+// import (
+//   	apps_v1 "k8s.io/api/apps/v1"
+// )
 
-_#DeploymentsOutput: {
-  kubernetes: deployment: [string]: apps_v1.#Deployment
+#DeploymentsOutput: {
+  // kubernetes: deployment: [string]: apps_v1.#Deployment
+  #Spec
 }
 
-_#DeploymentsTransform: {
+#DeploymentsTransform: {
   // Inputs for the caller
-  metadata: _#Metadata
-  spec: _#Spec
+  metadata: #Metadata
+  spec: #Spec
 
   // Output for the caller
-  out: _#DeploymentsOutput
+  out: #DeploymentsOutput
 
   // intermediate fields
-  
-
+  for f in spec.fleet {
+    _deployments: "\(metadata.name)-\(f.name)": {
+      	metadata: labels: {
+				repo: metadata.labels.repo
+				team: metadata.labels.team
+				env:  metadata.labels.env
+			}
+			spec: {
+				replicas: f.replicas
+				template: spec: containers: [{
+					name:  f.name
+					image: "\(f.imageName):\(f.imageTag)"
+					env: [ for k, v in f.envVars {
+						name:  k
+						value: v
+					}]
+				}]
+			}
+    }
+  }
 
 
   // set output
-  // out: kubernetes: deployment: 
+  // out: kubernetes: {
+  //   deployment: _deployments
+  // }
+  out: spec
 }
 
 
