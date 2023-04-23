@@ -1,22 +1,6 @@
 package v1alpha1
 
-#Metadata: {
-	name: string
-	labels: [string]: string
-}
-
-#Spec: {
-	fleet: [string]: #Fleet
-}
-
-#Fleet: {
-	name:      string
-	replicas:  int
-	imageName: string
-	imageTag:  string
-	envVars: [string]: string
-}
-
+// External-facing App spec. Not used for input, but _is_ used for format validation.
 #App: {
 	apiVersion: "v1alpha1"
 	kind:       "MikeApp"
@@ -41,6 +25,10 @@ package v1alpha1
 	}
 }
 
+// *******************************************
+// Primary function-like interface
+// *******************************************
+
 #Input: {
 	metadata: #Metadata
 	spec:     #Spec
@@ -62,7 +50,29 @@ package v1alpha1
 	// set output
 	out: {
 		// generated deployments
-		kubernetes: _deployments.out
+		kubernetes: _deployments.outs
 		// kubernetes: _services.out
 	}
+}
+
+// *******************************************
+// Intermediate spec definitions. 
+// These _probably_ don't need to be exported.
+// *******************************************
+
+#Metadata: {
+	name: string
+	labels: [string]: string
+}
+
+#Spec: {
+	fleet: [string]: #Fleet
+}
+
+#Fleet: {
+	name:      string
+	replicas:  int
+	imageName: string
+	imageTag:  string
+	envVars: [string]: string
 }

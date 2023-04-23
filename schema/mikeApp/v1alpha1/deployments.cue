@@ -63,35 +63,3 @@ _#DeploymentsGenerator: {
 		deployment: _deployments
 	}
 }
-
-// #MikeApp: outputs: kubernetes: deployment: {
-//   for f in mikeApp.spec.fleet {
-//     "\(mikeApp.metadata.name)-\(f.name)": {
-//       test: "yes"
-//     }
-//   }
-// }
-
-// for f in #MikeApp.spec.fleet {
-//   kubernetes: {
-//     deployment: "\(mikeApp.metadata.name)-\(f.name)" : {
-//       apiVersion: "apps/v1"
-//       kind: "Deployment"
-//       metadata: labels: {
-//         mikeApp.metadata.labels
-//       }
-//     }
-//   }
-// }
-
-// _#Deployments: {
-//   input: {
-//     metadata: _#Metadata
-//     spec: _#Spec
-//   }
-//   output: {
-//     for f in input.spec.fleet {
-//       test: "lol"
-//     }
-//   }
-// }
