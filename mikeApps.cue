@@ -15,7 +15,8 @@ if mikeApp.apiVersion == "v1alpha1" {
 	appGenerator: mikeApp_v1alpha1.#Generator & {in: {
 		metadata: mikeApp.metadata
 		spec:     mikeApp.spec
-	}}}
+	}}
+}
 
 // Handle output
 kubernetes: {
