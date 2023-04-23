@@ -7,9 +7,10 @@ import (
 // Format validation
 mikeApp: mikeApp_v1alpha1.#App // | mikeApp_v1alpha2.#App
 
-// Call functions based on versions
+// Initialize field, so it can be referenced outside the `if` scopes
 appGenerator: {}
 
+// Call functions based on versions
 if mikeApp.apiVersion == "v1alpha1" {
 	appGenerator: mikeApp_v1alpha1.#Generator & {in: {
 		metadata: mikeApp.metadata
