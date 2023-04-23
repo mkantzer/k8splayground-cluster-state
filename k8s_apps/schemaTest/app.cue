@@ -1,6 +1,7 @@
 package kube
 
 mikeApp: {
+	apiVersion: "v1alpha1"
 	metadata: {
 		name: "schemaTest"
 		labels: {
