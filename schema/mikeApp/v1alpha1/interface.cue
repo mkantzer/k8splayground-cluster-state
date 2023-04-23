@@ -4,7 +4,7 @@ package v1alpha1
 #App: {
 	apiVersion: "v1alpha1"
 	kind:       "MikeApp"
-	metadata:   #Metadata & {
+	metadata:   _#Metadata & {
 		name: string
 		labels: {
 			name: metadata.name // Should I define this elsewhere?
@@ -14,8 +14,8 @@ package v1alpha1
 			...
 		}
 	}
-	spec: #Spec & {
-		fleet: [Name=_]: #Fleet & {
+	spec: _#Spec & {
+		fleet: [Name=_]: _#Fleet & {
 			name:      Name
 			replicas:  int | *3
 			imageName: string | *"mkantzer/\(metadata.name)/\(Name)"
@@ -30,8 +30,8 @@ package v1alpha1
 // *******************************************
 
 #Input: {
-	metadata: #Metadata
-	spec:     #Spec
+	metadata: _#Metadata
+	spec:     _#Spec
 }
 
 #Output: {
@@ -50,7 +50,7 @@ package v1alpha1
 	// set output
 	out: {
 		// generated deployments
-		kubernetes: _deployments.outs
+		kubernetes: _deployments.out
 		// kubernetes: _services.out
 	}
 }
@@ -60,16 +60,16 @@ package v1alpha1
 // These _probably_ don't need to be exported.
 // *******************************************
 
-#Metadata: {
+_#Metadata: {
 	name: string
 	labels: [string]: string
 }
 
-#Spec: {
-	fleet: [string]: #Fleet
+_#Spec: {
+	fleet: [string]: _#Fleet
 }
 
-#Fleet: {
+_#Fleet: {
 	name:      string
 	replicas:  int
 	imageName: string
