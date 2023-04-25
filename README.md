@@ -35,7 +35,11 @@ This repo requires the installation of [cuelang](https://cuelang.org) tooling.
 
 ### Creating a new configuration
 
-Create a new directory under `k8s_apps`. Put all configuration shared between environments (`local`/`dev`/`prod`) in `app.cue` in that directory. Then create a subdirectory for each environment, and place an `app.cue` in each with that environments specific configuration (`env` tags, image tags, env vars, etc). Remember that an instance contains both its directory as well as all containing directories. 
+Create a new directory under `k8s_apps`. Put all configuration shared between environments (`local`/`dev`/`prod`) in `app.cue` in that directory. Then create a subdirectory for each environment, and place an `app.cue` in each with that environments specific configuration (`env` tags, image tags, env vars, etc). Remember that an instance contains both its directory as well as all containing directories.
+
+### Onboarding to ArgoCD
+
+TODO
 
 ### Executing cue commands
 
