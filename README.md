@@ -24,34 +24,33 @@ This system should also reduce boilerplate within a given application's `cluster
 
 The directory itself is structured to allow multiple _types_ of abstraction layers, and to allow those layers themselves to be versioned. 
 
-## Instances
+## Example Instances
 
-- **k8s_apps/app1/[environment]**: Omitted. Was an initial demo of using cue to validate raw YAML. Complicates the actual use of ArgoCD for rendering.
-- **k8s_apps/app2/[environment]**: Demonstrates how a fairly direct import of YAML could be structured, to begin making use of Cue functionality
-- **k8s_apps/app3/[environment]**: demonstrates how you can move components up towards root to reduce duplicate boilerplate. It also makes use of `cue.mod/usr` merging, to impose additional schema restrictions and further reduce boilerplate.
+- **k8s_apps/echo/[environment]**: Demonstrates how a fairly direct import of YAML could be structured, to begin making use of Cue functionality.
+- **k8s_apps/schemaTest/[environment]**: Demonstrates usage of a developer-facing abstraction layer to generate managed kubernetes manifests.
 
-> **TODO:** - **k8s_apps/appFour/[environment]**: demonstrates how additional schema and transformers can be introduced to provide a more concise interface to users
+## Usage
 
-## Tasks
+This repo requires the installation of [cuelang](https://cuelang.org) tooling.
 
-### YAML -> CUE file import
+### Creating a new configuration
 
-Execute this _in an instance with YAML files_:
-```sh
-cue import -f -l '"kubernetes"' -l 'strings.ToLower(kind)' -l 'metadata.name' -p kube *.yaml
-```
-You could now delete the YAML files; they have been rendered to `.cue`
+Create a new directory under `k8s_apps`. Put all configuration shared between environments (`local`/`dev`/`prod`) in `app.cue` in that directory. Then create a subdirectory for each environment, and place an `app.cue` in each with that environments specific configuration (`env` tags, image tags, env vars, etc). Remember that an instance contains both its directory as well as all containing directories. 
 
-### List Objects
+### Executing cue commands
 
-Execute this _in an instance that has been rendered to cue_:
+All of the following commands should be executed from the innermost directory of an instance (ex: `k8s_apps/schemaTest/dev/`)
+
+#### List Objects
+
+To get a list of what kubernetes objects will be rendered:
 ```
 cue ls
 ```
 
-### Render Cuelang to YAML at STDOUT
+#### Render Cuelang to YAML at STDOUT
 
-Execute this _in an instance that has been rendered to cue_:
+To output a YAML document stream of kubernetes manifests (usable without any additional processing):
 ```sh
 cue dump
 ```
