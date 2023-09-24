@@ -1,0 +1,6 @@
+# It's recommended to configure the codeowners file so that the
+# appropriate people will be automatically added as PR reviewers.
+# This can be as simple as assigning the whole repo to one team,
+# or you can configure more nuanced rules:
+# https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/about-code-owners
+*   @mkantzer
