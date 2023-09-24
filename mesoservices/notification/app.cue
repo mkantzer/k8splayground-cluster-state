@@ -20,7 +20,7 @@ mesoservice: {
 		probes: {
 			readiness: httpGet: {
 				path: "/q/health/ready"
-				port: 1400
+				port: "1400"
 			}
 			liveness: httpGet: {
 				path: "/q/health/live"
