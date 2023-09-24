@@ -33,9 +33,18 @@ import (
 #ApplicationSetSpec: {
 	goTemplate?: bool @go(GoTemplate) @protobuf(1,bytes)
 	generators: [...#ApplicationSetGenerator] @go(Generators,[]ApplicationSetGenerator) @protobuf(2,bytes)
-	template:    #ApplicationSetTemplate          @go(Template) @protobuf(3,bytes)
-	syncPolicy?: null | #ApplicationSetSyncPolicy @go(SyncPolicy,*ApplicationSetSyncPolicy) @protobuf(4,bytes)
-	strategy?:   null | #ApplicationSetStrategy   @go(Strategy,*ApplicationSetStrategy) @protobuf(5,bytes,opt)
+	template:         #ApplicationSetTemplate            @go(Template) @protobuf(3,bytes)
+	syncPolicy?:      null | #ApplicationSetSyncPolicy   @go(SyncPolicy,*ApplicationSetSyncPolicy) @protobuf(4,bytes)
+	strategy?:        null | #ApplicationSetStrategy     @go(Strategy,*ApplicationSetStrategy) @protobuf(5,bytes,opt)
+	preservedFields?: null | #ApplicationPreservedFields @go(PreservedFields,*ApplicationPreservedFields) @protobuf(6,bytes,opt)
+	goTemplateOptions?: [...string] @go(GoTemplateOptions,[]string) @protobuf(7,bytes,opt)
+
+	// ApplyNestedSelectors enables selectors defined within the generators of two level-nested matrix or merge generators
+	applyNestedSelectors?: bool @go(ApplyNestedSelectors) @protobuf(8,bytes)
+}
+
+#ApplicationPreservedFields: {
+	annotations?: [...string] @go(Annotations,[]string) @protobuf(1,bytes)
 }
 
 // ApplicationSetStrategy configures how generated Applications are updated in sequence.
@@ -59,11 +68,35 @@ import (
 	values?: [...string] @go(Values,[]string) @protobuf(3,bytes,opt)
 }
 
+// ApplicationsSyncPolicy representation
+// "create-only" means applications are only created. If the generator's result contains update, applications won't be updated
+// "create-update" means applications are only created/Updated. If the generator's result contains update, applications will be updated, but not deleted
+// "create-delete" means applications are only created/deleted. If the generator's result contains update, applications won't be updated, if it results in deleted applications, the applications will be deleted
+// "sync" means create/update/deleted. If the generator's result contains update, applications will be updated, if it results in deleted applications, the applications will be deleted
+// If no ApplicationsSyncPolicy is defined, it defaults it to sync
+#ApplicationsSyncPolicy: string // #enumApplicationsSyncPolicy
+
+#enumApplicationsSyncPolicy:
+	#ApplicationsSyncPolicyCreateOnly |
+	#ApplicationsSyncPolicyCreateUpdate |
+	#ApplicationsSyncPolicyCreateDelete |
+	#ApplicationsSyncPolicySync
+
+#ApplicationsSyncPolicyCreateOnly:   #ApplicationsSyncPolicy & "create-only"
+#ApplicationsSyncPolicyCreateUpdate: #ApplicationsSyncPolicy & "create-update"
+#ApplicationsSyncPolicyCreateDelete: #ApplicationsSyncPolicy & "create-delete"
+#ApplicationsSyncPolicySync:         #ApplicationsSyncPolicy & "sync"
+
 // ApplicationSetSyncPolicy configures how generated Applications will relate to their
 // ApplicationSet.
 #ApplicationSetSyncPolicy: {
 	// PreserveResourcesOnDeletion will preserve resources on deletion. If PreserveResourcesOnDeletion is set to true, these Applications will not be deleted.
 	preserveResourcesOnDeletion?: bool @go(PreserveResourcesOnDeletion) @protobuf(1,bytes,name=syncPolicy)
+
+	// ApplicationsSync represents the policy applied on the generated applications. Possible values are create-only, create-update, create-delete, sync
+	// +kubebuilder:validation:Optional
+	// +kubebuilder:validation:Enum=create-only;create-update;create-delete;sync
+	applicationsSync?: null | #ApplicationsSyncPolicy @go(ApplicationsSync,*ApplicationsSyncPolicy) @protobuf(2,bytes,opt,casttype=ApplicationsSyncPolicy)
 }
 
 // ApplicationSetTemplate represents argocd ApplicationSpec
@@ -95,6 +128,7 @@ import (
 
 	// Selector allows to post-filter all generator.
 	selector?: null | metav1.#LabelSelector @go(Selector,*metav1.LabelSelector) @protobuf(9,bytes)
+	plugin?:   null | #PluginGenerator      @go(Plugin,*PluginGenerator) @protobuf(10,bytes)
 }
 
 // ApplicationSetNestedGenerator represents a generator nested within a combination-type generator (MatrixGenerator or
@@ -115,6 +149,7 @@ import (
 
 	// Selector allows to post-filter all generator.
 	selector?: null | metav1.#LabelSelector @go(Selector,*metav1.LabelSelector) @protobuf(9,bytes)
+	plugin?:   null | #PluginGenerator      @go(Plugin,*PluginGenerator) @protobuf(10,bytes)
 }
 
 #ApplicationSetNestedGenerators: [...#ApplicationSetNestedGenerator]
@@ -130,6 +165,10 @@ import (
 	scmProvider?:             null | #SCMProviderGenerator @go(SCMProvider,*SCMProviderGenerator) @protobuf(4,bytes)
 	clusterDecisionResource?: null | #DuckTypeGenerator    @go(ClusterDecisionResource,*DuckTypeGenerator) @protobuf(5,bytes)
 	pullRequest?:             null | #PullRequestGenerator @go(PullRequest,*PullRequestGenerator) @protobuf(6,bytes)
+	plugin?:                  null | #PluginGenerator      @go(Plugin,*PluginGenerator) @protobuf(7,bytes,name=pullRequest)
+
+	// Selector allows to post-filter all generator.
+	selector?: null | metav1.#LabelSelector @go(Selector,*metav1.LabelSelector) @protobuf(8,bytes)
 }
 
 #ApplicationSetTerminalGenerators: [...#ApplicationSetTerminalGenerator]
@@ -137,7 +176,8 @@ import (
 // ListGenerator include items info
 #ListGenerator: {
 	elements: [...apiextensionsv1.#JSON] @go(Elements,[]apiextensionsv1.JSON) @protobuf(1,bytes)
-	template?: #ApplicationSetTemplate @go(Template) @protobuf(2,bytes)
+	template?:     #ApplicationSetTemplate @go(Template) @protobuf(2,bytes)
+	elementsYaml?: string                  @go(ElementsYaml) @protobuf(3,bytes,opt)
 }
 
 // MatrixGenerator generates the cartesian product of two sets of parameters. The parameters are defined by two nested
@@ -222,6 +262,9 @@ import (
 	requeueAfterSeconds?: null | int64            @go(RequeueAfterSeconds,*int64) @protobuf(5,bytes)
 	template?:            #ApplicationSetTemplate @go(Template) @protobuf(6,bytes)
 	pathParamPrefix?:     string                  @go(PathParamPrefix) @protobuf(7,bytes)
+
+	// Values contains key/value pairs which are passed directly as parameters to the template
+	values?: {[string]: string} @go(Values,map[string]string) @protobuf(8,bytes)
 }
 
 #GitDirectoryGeneratorItem: {
@@ -253,6 +296,10 @@ import (
 	// Standard parameters.
 	requeueAfterSeconds?: null | int64            @go(RequeueAfterSeconds,*int64) @protobuf(9,varint,opt)
 	template?:            #ApplicationSetTemplate @go(Template) @protobuf(10,bytes,opt)
+
+	// Values contains key/value pairs which are passed directly as parameters to the template
+	values?: {[string]: string} @go(Values,map[string]string) @protobuf(11,bytes)
+	awsCodeCommit?: null | #SCMProviderGeneratorAWSCodeCommit @go(AWSCodeCommit,*SCMProviderGeneratorAWSCodeCommit) @protobuf(12,bytes,opt)
 }
 
 // SCMProviderGeneratorGitea defines a connection info specific to Gitea.
@@ -307,6 +354,9 @@ import (
 
 	// Scan all branches instead of just the default branch.
 	allBranches?: bool @go(AllBranches) @protobuf(5,varint,opt)
+
+	// Skips validating the SCM provider's TLS certificate - useful for self-signed certificates.; default: false
+	insecure?: bool @go(Insecure) @protobuf(6,varint,opt)
 }
 
 // SCMProviderGeneratorBitbucket defines connection info specific to Bitbucket Cloud (API version 2).
@@ -357,6 +407,28 @@ import (
 	allBranches?: bool @go(AllBranches) @protobuf(9,varint,opt)
 }
 
+#TagFilter: {
+	key:    string @go(Key) @protobuf(1,bytes,opt)
+	value?: string @go(Value) @protobuf(2,bytes,opt)
+}
+
+// SCMProviderGeneratorAWSCodeCommit defines connection info specific to AWS CodeCommit.
+#SCMProviderGeneratorAWSCodeCommit: {
+	// TagFilters provides the tag filter(s) for repo discovery
+	tagFilters?: [...null | #TagFilter] @go(TagFilters,[]*TagFilter) @protobuf(1,bytes,opt)
+
+	// Role provides the AWS IAM role to assume, for cross-account repo discovery
+	// if not provided, AppSet controller will use its pod/node identity to discover.
+	role?: string @go(Role) @protobuf(2,bytes,opt)
+
+	// Region provides the AWS region to discover repos.
+	// if not provided, AppSet controller will infer the current region from environment.
+	region?: string @go(Region) @protobuf(3,bytes,opt)
+
+	// Scan all branches instead of just the default branch.
+	allBranches?: bool @go(AllBranches) @protobuf(4,varint,opt)
+}
+
 // SCMProviderGeneratorFilter is a single repository filter.
 // If multiple filter types are set on a single struct, they will be AND'd together. All filters must
 // pass for a repo to be included.
@@ -389,11 +461,15 @@ import (
 	filters?: [...#PullRequestGeneratorFilter] @go(Filters,[]PullRequestGeneratorFilter) @protobuf(5,bytes,rep)
 
 	// Standard parameters.
-	requeueAfterSeconds?: null | int64            @go(RequeueAfterSeconds,*int64) @protobuf(6,varint,opt)
-	template?:            #ApplicationSetTemplate @go(Template) @protobuf(7,bytes,opt)
+	requeueAfterSeconds?: null | int64                          @go(RequeueAfterSeconds,*int64) @protobuf(6,varint,opt)
+	template?:            #ApplicationSetTemplate               @go(Template) @protobuf(7,bytes,opt)
+	bitbucket?:           null | #PullRequestGeneratorBitbucket @go(Bitbucket,*PullRequestGeneratorBitbucket) @protobuf(8,bytes,opt)
+
+	// Additional provider to use and config for it.
+	azuredevops?: null | #PullRequestGeneratorAzureDevOps @go(AzureDevOps,*PullRequestGeneratorAzureDevOps) @protobuf(9,bytes,opt)
 }
 
-// PullRequestGenerator defines connection info specific to Gitea.
+// PullRequestGeneratorGitea defines connection info specific to Gitea.
 #PullRequestGeneratorGitea: {
 	// Gitea org or user to scan. Required.
 	owner: string @go(Owner) @protobuf(1,bytes,opt)
@@ -409,6 +485,27 @@ import (
 
 	// Allow insecure tls, for self-signed certificates; default: false.
 	insecure?: bool @go(Insecure) @protobuf(5,varint,opt)
+}
+
+// PullRequestGeneratorAzureDevOps defines connection info specific to AzureDevOps.
+#PullRequestGeneratorAzureDevOps: {
+	// Azure DevOps org to scan. Required.
+	organization: string @go(Organization) @protobuf(1,bytes,opt)
+
+	// Azure DevOps project name to scan. Required.
+	project: string @go(Project) @protobuf(2,bytes,opt)
+
+	// Azure DevOps repo name to scan. Required.
+	repo: string @go(Repo) @protobuf(3,bytes,opt)
+
+	// The Azure DevOps API URL to talk to. If blank, use https://dev.azure.com/.
+	api?: string @go(API) @protobuf(4,bytes,opt)
+
+	// Authentication token reference.
+	tokenRef?: null | #SecretRef @go(TokenRef,*SecretRef) @protobuf(5,bytes,opt)
+
+	// Labels is used to filter the PRs that you want to target
+	labels?: [...string] @go(Labels,[]string) @protobuf(6,bytes,rep)
 }
 
 // PullRequestGenerator defines connection info specific to GitHub.
@@ -448,9 +545,12 @@ import (
 
 	// PullRequestState is an additional MRs filter to get only those with a certain state. Default: "" (all states)
 	pullRequestState?: string @go(PullRequestState) @protobuf(5,bytes,rep)
+
+	// Skips validating the SCM provider's TLS certificate - useful for self-signed certificates.; default: false
+	insecure?: bool @go(Insecure) @protobuf(6,varint,opt)
 }
 
-// PullRequestGenerator defines connection info specific to BitbucketServer.
+// PullRequestGeneratorBitbucketServer defines connection info specific to BitbucketServer.
 #PullRequestGeneratorBitbucketServer: {
 	// Project to scan. Required.
 	project: string @go(Project) @protobuf(1,bytes,opt)
@@ -463,6 +563,30 @@ import (
 
 	// Credentials for Basic auth
 	basicAuth?: null | #BasicAuthBitbucketServer @go(BasicAuth,*BasicAuthBitbucketServer) @protobuf(4,bytes,opt)
+}
+
+// PullRequestGeneratorBitbucket defines connection info specific to Bitbucket.
+#PullRequestGeneratorBitbucket: {
+	// Workspace to scan. Required.
+	owner: string @go(Owner) @protobuf(1,bytes,opt)
+
+	// Repo name to scan. Required.
+	repo: string @go(Repo) @protobuf(2,bytes,opt)
+
+	// The Bitbucket REST API URL to talk to. If blank, uses https://api.bitbucket.org/2.0.
+	api?: string @go(API) @protobuf(3,bytes,opt)
+
+	// Credentials for Basic auth
+	basicAuth?: null | #BasicAuthBitbucketServer @go(BasicAuth,*BasicAuthBitbucketServer) @protobuf(4,bytes,opt)
+
+	// Credentials for AppToken (Bearer auth)
+	bearerToken?: null | #BearerTokenBitbucketCloud @go(BearerToken,*BearerTokenBitbucketCloud) @protobuf(5,bytes,opt)
+}
+
+// BearerTokenBitbucketCloud defines the Bearer token for BitBucket AppToken auth.
+#BearerTokenBitbucketCloud: {
+	// Password (or personal access token) reference.
+	tokenRef?: null | #SecretRef @go(TokenRef,*SecretRef) @protobuf(1,bytes,opt)
 }
 
 // BasicAuthBitbucketServer defines the username/(password or personal access token) for Basic auth.
@@ -478,7 +602,35 @@ import (
 // If multiple filter types are set on a single struct, they will be AND'd together. All filters must
 // pass for a pull request to be included.
 #PullRequestGeneratorFilter: {
-	branchMatch?: null | string @go(BranchMatch,*string) @protobuf(1,bytes,opt)
+	branchMatch?:       null | string @go(BranchMatch,*string) @protobuf(1,bytes,opt)
+	targetBranchMatch?: null | string @go(TargetBranchMatch,*string) @protobuf(2,bytes,opt)
+}
+
+#PluginConfigMapRef: {
+	// Name of the ConfigMap
+	name: string @go(Name) @protobuf(1,bytes,opt)
+}
+
+#PluginParameters: [string]: apiextensionsv1.#JSON
+
+#PluginInput: {
+	// Parameters contains the information to pass to the plugin. It is a map. The keys must be strings, and the
+	// values can be any type.
+	parameters?: #PluginParameters @go(Parameters) @protobuf(1,bytes)
+}
+
+// PluginGenerator defines connection info specific to Plugin.
+#PluginGenerator: {
+	configMapRef: #PluginConfigMapRef @go(ConfigMapRef) @protobuf(1,bytes)
+	input?:       #PluginInput        @go(Input) @protobuf(2,bytes)
+
+	// RequeueAfterSeconds determines how long the ApplicationSet controller will wait before reconciling the ApplicationSet again.
+	requeueAfterSeconds?: null | int64            @go(RequeueAfterSeconds,*int64) @protobuf(3,varint,opt)
+	template?:            #ApplicationSetTemplate @go(Template) @protobuf(4,bytes)
+
+	// Values contains key/value pairs which are passed directly as parameters to the template. These values will not be
+	// sent as parameters to the plugin.
+	values?: {[string]: string} @go(Values,map[string]string) @protobuf(5,bytes)
 }
 
 // ApplicationSetStatus defines the observed state of ApplicationSet

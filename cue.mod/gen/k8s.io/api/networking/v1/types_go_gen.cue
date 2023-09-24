@@ -147,22 +147,20 @@ import (
 	// should be allowed by the policy. This field cannot be defined if the port field
 	// is not defined or if the port field is defined as a named (string) port.
 	// The endPort must be equal or greater than port.
-	// This feature is in Beta state and is enabled by default.
-	// It can be disabled using the Feature Gate "NetworkPolicyEndPort".
 	// +optional
 	endPort?: null | int32 @go(EndPort,*int32) @protobuf(3,bytes,opt)
 }
 
-// IPBlock describes a particular CIDR (Ex. "192.168.1.1/24","2001:db9::/64") that is allowed
+// IPBlock describes a particular CIDR (Ex. "192.168.1.0/24","2001:db8::/64") that is allowed
 // to the pods matched by a NetworkPolicySpec's podSelector. The except entry describes CIDRs
 // that should not be included within this rule.
 #IPBlock: {
 	// CIDR is a string representing the IP Block
-	// Valid examples are "192.168.1.1/24" or "2001:db9::/64"
+	// Valid examples are "192.168.1.0/24" or "2001:db8::/64"
 	cidr: string @go(CIDR) @protobuf(1,bytes)
 
 	// Except is a slice of CIDRs that should not be included within an IP Block
-	// Valid examples are "192.168.1.1/24" or "2001:db9::/64"
+	// Valid examples are "192.168.1.0/24" or "2001:db8::/64"
 	// Except values will be rejected if they are outside the CIDR range
 	// +optional
 	except?: [...string] @go(Except,[]string) @protobuf(2,bytes,rep)
@@ -292,16 +290,16 @@ import (
 
 // IngressSpec describes the Ingress the user wishes to exist.
 #IngressSpec: {
-	// IngressClassName is the name of the IngressClass cluster resource. The
-	// associated IngressClass defines which controller will implement the
-	// resource. This replaces the deprecated `kubernetes.io/ingress.class`
-	// annotation. For backwards compatibility, when that annotation is set, it
-	// must be given precedence over this field. The controller may emit a
-	// warning if the field and annotation have different values.
-	// Implementations of this API should ignore Ingresses without a class
-	// specified. An IngressClass resource may be marked as default, which can
-	// be used to set a default value for this field. For more information,
-	// refer to the IngressClass documentation.
+	// IngressClassName is the name of an IngressClass cluster resource. Ingress
+	// controller implementations use this field to know whether they should be
+	// serving this Ingress resource, by a transitive connection
+	// (controller -> IngressClass -> Ingress resource). Although the
+	// `kubernetes.io/ingress.class` annotation (simple constant name) was never
+	// formally defined, it was widely supported by Ingress controllers to create
+	// a direct binding between Ingress controller and Ingress resources. Newly
+	// created Ingress resources should prefer using the field. However, even
+	// though the annotation is officially deprecated, for backwards compatibility
+	// reasons, ingress controllers should still honor that annotation if present.
 	// +optional
 	ingressClassName?: null | string @go(IngressClassName,*string) @protobuf(4,bytes,opt)
 
@@ -351,7 +349,54 @@ import (
 #IngressStatus: {
 	// LoadBalancer contains the current status of the load-balancer.
 	// +optional
-	loadBalancer?: v1.#LoadBalancerStatus @go(LoadBalancer) @protobuf(1,bytes,opt)
+	loadBalancer?: #IngressLoadBalancerStatus @go(LoadBalancer) @protobuf(1,bytes,opt)
+}
+
+// IngressLoadBalancerStatus represents the status of a load-balancer.
+#IngressLoadBalancerStatus: {
+	// Ingress is a list containing ingress points for the load-balancer.
+	// +optional
+	ingress?: [...#IngressLoadBalancerIngress] @go(Ingress,[]IngressLoadBalancerIngress) @protobuf(1,bytes,rep)
+}
+
+// IngressLoadBalancerIngress represents the status of a load-balancer ingress point.
+#IngressLoadBalancerIngress: {
+	// IP is set for load-balancer ingress points that are IP based.
+	// +optional
+	ip?: string @go(IP) @protobuf(1,bytes,opt)
+
+	// Hostname is set for load-balancer ingress points that are DNS based.
+	// +optional
+	hostname?: string @go(Hostname) @protobuf(2,bytes,opt)
+
+	// Ports provides information about the ports exposed by this LoadBalancer.
+	// +listType=atomic
+	// +optional
+	ports?: [...#IngressPortStatus] @go(Ports,[]IngressPortStatus) @protobuf(4,bytes,rep)
+}
+
+// IngressPortStatus represents the error condition of a service port
+#IngressPortStatus: {
+	// Port is the port number of the ingress port.
+	port: int32 @go(Port) @protobuf(1,varint,opt)
+
+	// Protocol is the protocol of the ingress port.
+	// The supported values are: "TCP", "UDP", "SCTP"
+	protocol: v1.#Protocol @go(Protocol) @protobuf(2,bytes,opt,casttype=Protocol)
+
+	// Error is to record the problem with the service port
+	// The format of the error shall comply with the following rules:
+	// - built-in error values shall be specified in this file and those shall use
+	//   CamelCase names
+	// - cloud provider specific error values must have names that comply with the
+	//   format foo.example.com/CamelCase.
+	// ---
+	// The regex it matches is (dns1123SubdomainFmt/)?(qualifiedNameFmt)
+	// +optional
+	// +kubebuilder:validation:Required
+	// +kubebuilder:validation:Pattern=`^([a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*/)?(([A-Za-z0-9][-A-Za-z0-9_.]*)?[A-Za-z0-9])$`
+	// +kubebuilder:validation:MaxLength=316
+	error?: null | string @go(Error,*string) @protobuf(3,bytes,opt)
 }
 
 // IngressRule represents the rules mapping the paths under a specified host to
@@ -364,8 +409,8 @@ import (
 	// 1. IPs are not allowed. Currently an IngressRuleValue can only apply to
 	//    the IP in the Spec of the parent Ingress.
 	// 2. The `:` delimiter is not respected because ports are not allowed.
-	//   Currently the port of an Ingress is implicitly :80 for http and
-	//   :443 for https.
+	//	  Currently the port of an Ingress is implicitly :80 for http and
+	//	  :443 for https.
 	// Both these may change in the future.
 	// Incoming requests are matched against the host before the
 	// IngressRuleValue. If the host is unspecified, the Ingress routes all
@@ -550,7 +595,7 @@ import (
 // referenced Parameters resource is namespace-scoped.
 #IngressClassParametersReferenceScopeNamespace: "Namespace"
 
-// IngressClassParametersReferenceScopeNamespace indicates that the
+// IngressClassParametersReferenceScopeCluster indicates that the
 // referenced Parameters resource is cluster-scoped.
 #IngressClassParametersReferenceScopeCluster: "Cluster"
 
