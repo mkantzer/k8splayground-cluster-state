@@ -15,12 +15,12 @@ mesoservice: {
 		envVars: PORT: "1400"
 		metrics: {
 			path: "/q/metrics"
-			port: 1400
+			port: "1400"
 		}
 		probes: {
 			readiness: httpGet: {
 				path: "/q/health/ready"
-				port: "1400"
+				port: 1400
 			}
 			liveness: httpGet: {
 				path: "/q/health/live"
