@@ -1,0 +1,900 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: sample-app-prod-prod-cluster
+  labels:
+    name: sample-app-prod-prod-cluster
+    mesoservice: sample-app
+    context: prime
+    repo: SampleRepo
+    type: prod
+    team: teamname
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: root
+  source:
+    repoURL: git@github.com:mkantzer/k8splayground-cluster-state.git
+    targetRevision: HEAD
+    path: mesoservices/sample-app
+    plugin:
+      name: cuelang-prime
+      env:
+        - name: DYNAMICTAGS
+          value: -t apiFirstLevelSubdomains=api%input%www -t useDnsPrefixesInternally=false -t dnsExternalSuffix=mk5r-prod.io -t envVarGroup=prodLike -t namespace=sample-app
+  destination:
+    name: prod-cluster
+    namespace: sample-app
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+      allowEmpty: false
+    syncOptions:
+      - Validate=true
+      - CreateNamespace=true
+      - PrunePropagationPolicy=foreground
+      - PruneLast=true
+    managedNamespaceMetadata:
+      labels:
+        name: sample-app
+        mesoservice: sample-app
+        context: prime
+        repo: SampleRepo
+        gateway-access: "true"
+        type: prod
+        team: teamname
+    retry:
+      limit: 5
+      backoff:
+        duration: 5s
+        factor: 2
+        maxDuration: 3m
+  revisionHistoryLimit: 10
+---
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: sample-app-prod-mk5r-dev
+  labels:
+    name: sample-app-prod-mk5r-dev
+    mesoservice: sample-app
+    context: prime
+    repo: SampleRepo
+    type: prod
+    team: teamname
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: root
+  source:
+    repoURL: git@github.com:mkantzer/k8splayground-cluster-state.git
+    targetRevision: HEAD
+    path: mesoservices/sample-app
+    plugin:
+      name: cuelang-prime
+      env:
+        - name: DYNAMICTAGS
+          value: -t apiFirstLevelSubdomains=api%input%www -t useDnsPrefixesInternally=false -t dnsExternalSuffix=mk5r-dev.io -t envVarGroup=prodLike -t namespace=sample-app
+  destination:
+    name: mk5r-dev
+    namespace: sample-app
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+      allowEmpty: false
+    syncOptions:
+      - Validate=true
+      - CreateNamespace=true
+      - PrunePropagationPolicy=foreground
+      - PruneLast=true
+    managedNamespaceMetadata:
+      labels:
+        name: sample-app
+        mesoservice: sample-app
+        context: prime
+        repo: SampleRepo
+        gateway-access: "true"
+        type: prod
+        team: teamname
+    retry:
+      limit: 5
+      backoff:
+        duration: 5s
+        factor: 2
+        maxDuration: 3m
+  revisionHistoryLimit: 10
+---
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: sample-app-prod-mk5r-dev2
+  labels:
+    name: sample-app-prod-mk5r-dev2
+    mesoservice: sample-app
+    context: prime
+    repo: SampleRepo
+    type: prod
+    team: teamname
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: root
+  source:
+    repoURL: git@github.com:mkantzer/k8splayground-cluster-state.git
+    targetRevision: HEAD
+    path: mesoservices/sample-app
+    plugin:
+      name: cuelang-prime
+      env:
+        - name: DYNAMICTAGS
+          value: -t apiFirstLevelSubdomains=api%input%www -t useDnsPrefixesInternally=false -t dnsExternalSuffix=mk5r-dev2.io -t envVarGroup=prodLike -t namespace=sample-app
+  destination:
+    name: mk5r-dev2
+    namespace: sample-app
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+      allowEmpty: false
+    syncOptions:
+      - Validate=true
+      - CreateNamespace=true
+      - PrunePropagationPolicy=foreground
+      - PruneLast=true
+    managedNamespaceMetadata:
+      labels:
+        name: sample-app
+        mesoservice: sample-app
+        context: prime
+        repo: SampleRepo
+        gateway-access: "true"
+        type: prod
+        team: teamname
+    retry:
+      limit: 5
+      backoff:
+        duration: 5s
+        factor: 2
+        maxDuration: 3m
+  revisionHistoryLimit: 10
+---
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: other-app-prod-prod-cluster
+  labels:
+    name: other-app-prod-prod-cluster
+    mesoservice: other-app
+    context: prime
+    repo: SampleRepo
+    type: prod
+    team: teamname
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: root
+  source:
+    repoURL: git@github.com:mkantzer/k8splayground-cluster-state.git
+    targetRevision: HEAD
+    path: mesoservices/other-app
+    plugin:
+      name: cuelang-prime
+      env:
+        - name: DYNAMICTAGS
+          value: -t apiFirstLevelSubdomains=api%input%www -t useDnsPrefixesInternally=false -t dnsExternalSuffix=mk5r-prod.io -t envVarGroup=prodLike -t namespace=other-app
+  destination:
+    name: prod-cluster
+    namespace: other-app
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+      allowEmpty: false
+    syncOptions:
+      - Validate=true
+      - CreateNamespace=true
+      - PrunePropagationPolicy=foreground
+      - PruneLast=true
+    managedNamespaceMetadata:
+      labels:
+        name: other-app
+        mesoservice: other-app
+        context: prime
+        repo: SampleRepo
+        gateway-access: "true"
+        type: prod
+        team: teamname
+    retry:
+      limit: 5
+      backoff:
+        duration: 5s
+        factor: 2
+        maxDuration: 3m
+  revisionHistoryLimit: 10
+---
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: other-app-prod-mk5r-dev
+  labels:
+    name: other-app-prod-mk5r-dev
+    mesoservice: other-app
+    context: prime
+    repo: SampleRepo
+    type: prod
+    team: teamname
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: root
+  source:
+    repoURL: git@github.com:mkantzer/k8splayground-cluster-state.git
+    targetRevision: HEAD
+    path: mesoservices/other-app
+    plugin:
+      name: cuelang-prime
+      env:
+        - name: DYNAMICTAGS
+          value: -t apiFirstLevelSubdomains=api%input%www -t useDnsPrefixesInternally=false -t dnsExternalSuffix=mk5r-dev.io -t envVarGroup=prodLike -t namespace=other-app
+  destination:
+    name: mk5r-dev
+    namespace: other-app
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+      allowEmpty: false
+    syncOptions:
+      - Validate=true
+      - CreateNamespace=true
+      - PrunePropagationPolicy=foreground
+      - PruneLast=true
+    managedNamespaceMetadata:
+      labels:
+        name: other-app
+        mesoservice: other-app
+        context: prime
+        repo: SampleRepo
+        gateway-access: "true"
+        type: prod
+        team: teamname
+    retry:
+      limit: 5
+      backoff:
+        duration: 5s
+        factor: 2
+        maxDuration: 3m
+  revisionHistoryLimit: 10
+---
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: other-app-prod-mk5r-dev2
+  labels:
+    name: other-app-prod-mk5r-dev2
+    mesoservice: other-app
+    context: prime
+    repo: SampleRepo
+    type: prod
+    team: teamname
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: root
+  source:
+    repoURL: git@github.com:mkantzer/k8splayground-cluster-state.git
+    targetRevision: HEAD
+    path: mesoservices/other-app
+    plugin:
+      name: cuelang-prime
+      env:
+        - name: DYNAMICTAGS
+          value: -t apiFirstLevelSubdomains=api%input%www -t useDnsPrefixesInternally=false -t dnsExternalSuffix=mk5r-dev2.io -t envVarGroup=prodLike -t namespace=other-app
+  destination:
+    name: mk5r-dev2
+    namespace: other-app
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+      allowEmpty: false
+    syncOptions:
+      - Validate=true
+      - CreateNamespace=true
+      - PrunePropagationPolicy=foreground
+      - PruneLast=true
+    managedNamespaceMetadata:
+      labels:
+        name: other-app
+        mesoservice: other-app
+        context: prime
+        repo: SampleRepo
+        gateway-access: "true"
+        type: prod
+        team: teamname
+    retry:
+      limit: 5
+      backoff:
+        duration: 5s
+        factor: 2
+        maxDuration: 3m
+  revisionHistoryLimit: 10
+---
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: no-prod-prod-mk5r-dev
+  labels:
+    name: no-prod-prod-mk5r-dev
+    mesoservice: no-prod
+    context: prime
+    repo: SampleRepo
+    type: prod
+    team: teamname
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: root
+  source:
+    repoURL: git@github.com:mkantzer/k8splayground-cluster-state.git
+    targetRevision: HEAD
+    path: mesoservices/no-prod
+    plugin:
+      name: cuelang-prime
+      env:
+        - name: DYNAMICTAGS
+          value: -t apiFirstLevelSubdomains=api%input%www -t useDnsPrefixesInternally=false -t dnsExternalSuffix=mk5r-dev.io -t envVarGroup=prodLike -t namespace=no-prod
+  destination:
+    name: mk5r-dev
+    namespace: no-prod
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+      allowEmpty: false
+    syncOptions:
+      - Validate=true
+      - CreateNamespace=true
+      - PrunePropagationPolicy=foreground
+      - PruneLast=true
+    managedNamespaceMetadata:
+      labels:
+        name: no-prod
+        mesoservice: no-prod
+        context: prime
+        repo: SampleRepo
+        gateway-access: "true"
+        type: prod
+        team: teamname
+    retry:
+      limit: 5
+      backoff:
+        duration: 5s
+        factor: 2
+        maxDuration: 3m
+  revisionHistoryLimit: 10
+---
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: no-prod-prod-mk5r-dev2
+  labels:
+    name: no-prod-prod-mk5r-dev2
+    mesoservice: no-prod
+    context: prime
+    repo: SampleRepo
+    type: prod
+    team: teamname
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: root
+  source:
+    repoURL: git@github.com:mkantzer/k8splayground-cluster-state.git
+    targetRevision: HEAD
+    path: mesoservices/no-prod
+    plugin:
+      name: cuelang-prime
+      env:
+        - name: DYNAMICTAGS
+          value: -t apiFirstLevelSubdomains=api%input%www -t useDnsPrefixesInternally=false -t dnsExternalSuffix=mk5r-dev2.io -t envVarGroup=prodLike -t namespace=no-prod
+  destination:
+    name: mk5r-dev2
+    namespace: no-prod
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+      allowEmpty: false
+    syncOptions:
+      - Validate=true
+      - CreateNamespace=true
+      - PrunePropagationPolicy=foreground
+      - PruneLast=true
+    managedNamespaceMetadata:
+      labels:
+        name: no-prod
+        mesoservice: no-prod
+        context: prime
+        repo: SampleRepo
+        gateway-access: "true"
+        type: prod
+        team: teamname
+    retry:
+      limit: 5
+      backoff:
+        duration: 5s
+        factor: 2
+        maxDuration: 3m
+  revisionHistoryLimit: 10
+---
+apiVersion: argoproj.io/v1alpha1
+kind: ApplicationSet
+metadata:
+  name: sample-app-cspr-dev-prime
+  labels:
+    name: sample-app-cspr-dev-prime
+    mesoservice: sample-app
+    context: prime
+    repo: SampleRepo
+    type: clusterstate-pr
+    team: teamname
+spec:
+  generators:
+    - pullRequest:
+        github:
+          owner: mkantzer
+          repo: k8splayground-cluster-state
+          appSecretName: argocd-repo-creds-gh-mk5r-app
+        requeueAfterSeconds: 15
+  template:
+    metadata:
+      name: sample-app-cspr-dev-prime-{{number}}
+      labels:
+        name: sample-app-cspr-dev-prime-{{number}}
+        pullrequestid: '{{number}}'
+        mesoservice: sample-app
+        context: prime
+        repo: SampleRepo
+        pullrequestrepo: k8splayground-cluster-state
+        type: clusterstate-pr
+        team: teamname
+      finalizers:
+        - resources-finalizer.argocd.argoproj.io
+    spec:
+      project: root
+      source:
+        repoURL: git@github.com:mkantzer/k8splayground-cluster-state.git
+        targetRevision: '{{branch}}'
+        path: mesoservices/sample-app
+        plugin:
+          name: cuelang-prime
+          env:
+            - name: DYNAMICTAGS
+              value: -t apiFirstLevelSubdomains=api -t envSubdomain={{number}}-cspr. -t useDnsPrefixesInternally=true -t dnsExternalSuffix=mk5r-dev.io -t envVarGroup=preview -t namespace=sample-app-tntspr-{{number}}
+      destination:
+        name: mk5r-dev
+        namespace: sample-app-cspr-{{number}}
+      syncPolicy:
+        automated:
+          prune: true
+          selfHeal: true
+          allowEmpty: false
+        syncOptions:
+          - Validate=true
+          - CreateNamespace=true
+          - PrunePropagationPolicy=foreground
+          - PruneLast=true
+        managedNamespaceMetadata:
+          labels:
+            name: sample-app-cspr-{{number}}
+            gateway-access: "true"
+            ephemeral-ns: "true"
+            pullrequestrepo: k8splayground-cluster-state
+            mesoservice: sample-app
+            context: prime
+            repo: SampleRepo
+            pullrequestid: '{{number}}'
+            type: clusterstate-pr
+            team: teamname
+        retry:
+          limit: 5
+          backoff:
+            duration: 5s
+            factor: 2
+            maxDuration: 3m
+      revisionHistoryLimit: 10
+---
+apiVersion: argoproj.io/v1alpha1
+kind: ApplicationSet
+metadata:
+  name: sample-app-cspr-dev2-prime
+  labels:
+    name: sample-app-cspr-dev2-prime
+    mesoservice: sample-app
+    context: prime
+    repo: SampleRepo
+    type: clusterstate-pr
+    team: teamname
+spec:
+  generators:
+    - pullRequest:
+        github:
+          owner: mkantzer
+          repo: k8splayground-cluster-state
+          appSecretName: argocd-repo-creds-gh-mk5r-app
+          labels:
+            - mk5r-dev2
+        requeueAfterSeconds: 15
+  template:
+    metadata:
+      name: sample-app-cspr-dev2-prime-{{number}}
+      labels:
+        name: sample-app-cspr-dev2-prime-{{number}}
+        pullrequestid: '{{number}}'
+        mesoservice: sample-app
+        context: prime
+        repo: SampleRepo
+        pullrequestrepo: k8splayground-cluster-state
+        type: clusterstate-pr
+        team: teamname
+      finalizers:
+        - resources-finalizer.argocd.argoproj.io
+    spec:
+      project: root
+      source:
+        repoURL: git@github.com:mkantzer/k8splayground-cluster-state.git
+        targetRevision: '{{branch}}'
+        path: mesoservices/sample-app
+        plugin:
+          name: cuelang-prime
+          env:
+            - name: DYNAMICTAGS
+              value: -t apiFirstLevelSubdomains=api -t envSubdomain={{number}}-cspr. -t useDnsPrefixesInternally=true -t dnsExternalSuffix=mk5r-dev2.io -t envVarGroup=preview -t namespace=sample-app-tntspr-{{number}}
+      destination:
+        name: mk5r-dev2
+        namespace: sample-app-cspr-{{number}}
+      syncPolicy:
+        automated:
+          prune: true
+          selfHeal: true
+          allowEmpty: false
+        syncOptions:
+          - Validate=true
+          - CreateNamespace=true
+          - PrunePropagationPolicy=foreground
+          - PruneLast=true
+        managedNamespaceMetadata:
+          labels:
+            name: sample-app-cspr-{{number}}
+            gateway-access: "true"
+            ephemeral-ns: "true"
+            pullrequestrepo: k8splayground-cluster-state
+            mesoservice: sample-app
+            context: prime
+            repo: SampleRepo
+            pullrequestid: '{{number}}'
+            type: clusterstate-pr
+            team: teamname
+        retry:
+          limit: 5
+          backoff:
+            duration: 5s
+            factor: 2
+            maxDuration: 3m
+      revisionHistoryLimit: 10
+---
+apiVersion: argoproj.io/v1alpha1
+kind: ApplicationSet
+metadata:
+  name: other-app-cspr-dev-prime
+  labels:
+    name: other-app-cspr-dev-prime
+    mesoservice: other-app
+    context: prime
+    repo: SampleRepo
+    type: clusterstate-pr
+    team: teamname
+spec:
+  generators:
+    - pullRequest:
+        github:
+          owner: mkantzer
+          repo: k8splayground-cluster-state
+          appSecretName: argocd-repo-creds-gh-mk5r-app
+        requeueAfterSeconds: 15
+  template:
+    metadata:
+      name: other-app-cspr-dev-prime-{{number}}
+      labels:
+        name: other-app-cspr-dev-prime-{{number}}
+        pullrequestid: '{{number}}'
+        mesoservice: other-app
+        context: prime
+        repo: SampleRepo
+        pullrequestrepo: k8splayground-cluster-state
+        type: clusterstate-pr
+        team: teamname
+      finalizers:
+        - resources-finalizer.argocd.argoproj.io
+    spec:
+      project: root
+      source:
+        repoURL: git@github.com:mkantzer/k8splayground-cluster-state.git
+        targetRevision: '{{branch}}'
+        path: mesoservices/other-app
+        plugin:
+          name: cuelang-prime
+          env:
+            - name: DYNAMICTAGS
+              value: -t apiFirstLevelSubdomains=api -t envSubdomain={{number}}-cspr. -t useDnsPrefixesInternally=true -t dnsExternalSuffix=mk5r-dev.io -t envVarGroup=preview -t namespace=other-app-tntspr-{{number}}
+      destination:
+        name: mk5r-dev
+        namespace: other-app-cspr-{{number}}
+      syncPolicy:
+        automated:
+          prune: true
+          selfHeal: true
+          allowEmpty: false
+        syncOptions:
+          - Validate=true
+          - CreateNamespace=true
+          - PrunePropagationPolicy=foreground
+          - PruneLast=true
+        managedNamespaceMetadata:
+          labels:
+            name: other-app-cspr-{{number}}
+            gateway-access: "true"
+            ephemeral-ns: "true"
+            pullrequestrepo: k8splayground-cluster-state
+            mesoservice: other-app
+            context: prime
+            repo: SampleRepo
+            pullrequestid: '{{number}}'
+            type: clusterstate-pr
+            team: teamname
+        retry:
+          limit: 5
+          backoff:
+            duration: 5s
+            factor: 2
+            maxDuration: 3m
+      revisionHistoryLimit: 10
+---
+apiVersion: argoproj.io/v1alpha1
+kind: ApplicationSet
+metadata:
+  name: other-app-cspr-dev2-prime
+  labels:
+    name: other-app-cspr-dev2-prime
+    mesoservice: other-app
+    context: prime
+    repo: SampleRepo
+    type: clusterstate-pr
+    team: teamname
+spec:
+  generators:
+    - pullRequest:
+        github:
+          owner: mkantzer
+          repo: k8splayground-cluster-state
+          appSecretName: argocd-repo-creds-gh-mk5r-app
+          labels:
+            - mk5r-dev2
+        requeueAfterSeconds: 15
+  template:
+    metadata:
+      name: other-app-cspr-dev2-prime-{{number}}
+      labels:
+        name: other-app-cspr-dev2-prime-{{number}}
+        pullrequestid: '{{number}}'
+        mesoservice: other-app
+        context: prime
+        repo: SampleRepo
+        pullrequestrepo: k8splayground-cluster-state
+        type: clusterstate-pr
+        team: teamname
+      finalizers:
+        - resources-finalizer.argocd.argoproj.io
+    spec:
+      project: root
+      source:
+        repoURL: git@github.com:mkantzer/k8splayground-cluster-state.git
+        targetRevision: '{{branch}}'
+        path: mesoservices/other-app
+        plugin:
+          name: cuelang-prime
+          env:
+            - name: DYNAMICTAGS
+              value: -t apiFirstLevelSubdomains=api -t envSubdomain={{number}}-cspr. -t useDnsPrefixesInternally=true -t dnsExternalSuffix=mk5r-dev2.io -t envVarGroup=preview -t namespace=other-app-tntspr-{{number}}
+      destination:
+        name: mk5r-dev2
+        namespace: other-app-cspr-{{number}}
+      syncPolicy:
+        automated:
+          prune: true
+          selfHeal: true
+          allowEmpty: false
+        syncOptions:
+          - Validate=true
+          - CreateNamespace=true
+          - PrunePropagationPolicy=foreground
+          - PruneLast=true
+        managedNamespaceMetadata:
+          labels:
+            name: other-app-cspr-{{number}}
+            gateway-access: "true"
+            ephemeral-ns: "true"
+            pullrequestrepo: k8splayground-cluster-state
+            mesoservice: other-app
+            context: prime
+            repo: SampleRepo
+            pullrequestid: '{{number}}'
+            type: clusterstate-pr
+            team: teamname
+        retry:
+          limit: 5
+          backoff:
+            duration: 5s
+            factor: 2
+            maxDuration: 3m
+      revisionHistoryLimit: 10
+---
+apiVersion: argoproj.io/v1alpha1
+kind: ApplicationSet
+metadata:
+  name: no-prod-cspr-dev-prime
+  labels:
+    name: no-prod-cspr-dev-prime
+    mesoservice: no-prod
+    context: prime
+    repo: SampleRepo
+    type: clusterstate-pr
+    team: teamname
+spec:
+  generators:
+    - pullRequest:
+        github:
+          owner: mkantzer
+          repo: k8splayground-cluster-state
+          appSecretName: argocd-repo-creds-gh-mk5r-app
+        requeueAfterSeconds: 15
+  template:
+    metadata:
+      name: no-prod-cspr-dev-prime-{{number}}
+      labels:
+        name: no-prod-cspr-dev-prime-{{number}}
+        pullrequestid: '{{number}}'
+        mesoservice: no-prod
+        context: prime
+        repo: SampleRepo
+        pullrequestrepo: k8splayground-cluster-state
+        type: clusterstate-pr
+        team: teamname
+      finalizers:
+        - resources-finalizer.argocd.argoproj.io
+    spec:
+      project: root
+      source:
+        repoURL: git@github.com:mkantzer/k8splayground-cluster-state.git
+        targetRevision: '{{branch}}'
+        path: mesoservices/no-prod
+        plugin:
+          name: cuelang-prime
+          env:
+            - name: DYNAMICTAGS
+              value: -t apiFirstLevelSubdomains=api -t envSubdomain={{number}}-cspr. -t useDnsPrefixesInternally=true -t dnsExternalSuffix=mk5r-dev.io -t envVarGroup=preview -t namespace=no-prod-tntspr-{{number}}
+      destination:
+        name: mk5r-dev
+        namespace: no-prod-cspr-{{number}}
+      syncPolicy:
+        automated:
+          prune: true
+          selfHeal: true
+          allowEmpty: false
+        syncOptions:
+          - Validate=true
+          - CreateNamespace=true
+          - PrunePropagationPolicy=foreground
+          - PruneLast=true
+        managedNamespaceMetadata:
+          labels:
+            name: no-prod-cspr-{{number}}
+            gateway-access: "true"
+            ephemeral-ns: "true"
+            pullrequestrepo: k8splayground-cluster-state
+            mesoservice: no-prod
+            context: prime
+            repo: SampleRepo
+            pullrequestid: '{{number}}'
+            type: clusterstate-pr
+            team: teamname
+        retry:
+          limit: 5
+          backoff:
+            duration: 5s
+            factor: 2
+            maxDuration: 3m
+      revisionHistoryLimit: 10
+---
+apiVersion: argoproj.io/v1alpha1
+kind: ApplicationSet
+metadata:
+  name: no-prod-cspr-dev2-prime
+  labels:
+    name: no-prod-cspr-dev2-prime
+    mesoservice: no-prod
+    context: prime
+    repo: SampleRepo
+    type: clusterstate-pr
+    team: teamname
+spec:
+  generators:
+    - pullRequest:
+        github:
+          owner: mkantzer
+          repo: k8splayground-cluster-state
+          appSecretName: argocd-repo-creds-gh-mk5r-app
+          labels:
+            - mk5r-dev2
+        requeueAfterSeconds: 15
+  template:
+    metadata:
+      name: no-prod-cspr-dev2-prime-{{number}}
+      labels:
+        name: no-prod-cspr-dev2-prime-{{number}}
+        pullrequestid: '{{number}}'
+        mesoservice: no-prod
+        context: prime
+        repo: SampleRepo
+        pullrequestrepo: k8splayground-cluster-state
+        type: clusterstate-pr
+        team: teamname
+      finalizers:
+        - resources-finalizer.argocd.argoproj.io
+    spec:
+      project: root
+      source:
+        repoURL: git@github.com:mkantzer/k8splayground-cluster-state.git
+        targetRevision: '{{branch}}'
+        path: mesoservices/no-prod
+        plugin:
+          name: cuelang-prime
+          env:
+            - name: DYNAMICTAGS
+              value: -t apiFirstLevelSubdomains=api -t envSubdomain={{number}}-cspr. -t useDnsPrefixesInternally=true -t dnsExternalSuffix=mk5r-dev2.io -t envVarGroup=preview -t namespace=no-prod-tntspr-{{number}}
+      destination:
+        name: mk5r-dev2
+        namespace: no-prod-cspr-{{number}}
+      syncPolicy:
+        automated:
+          prune: true
+          selfHeal: true
+          allowEmpty: false
+        syncOptions:
+          - Validate=true
+          - CreateNamespace=true
+          - PrunePropagationPolicy=foreground
+          - PruneLast=true
+        managedNamespaceMetadata:
+          labels:
+            name: no-prod-cspr-{{number}}
+            gateway-access: "true"
+            ephemeral-ns: "true"
+            pullrequestrepo: k8splayground-cluster-state
+            mesoservice: no-prod
+            context: prime
+            repo: SampleRepo
+            pullrequestid: '{{number}}'
+            type: clusterstate-pr
+            team: teamname
+        retry:
+          limit: 5
+          backoff:
+            duration: 5s
+            factor: 2
+            maxDuration: 3m
+      revisionHistoryLimit: 10
+

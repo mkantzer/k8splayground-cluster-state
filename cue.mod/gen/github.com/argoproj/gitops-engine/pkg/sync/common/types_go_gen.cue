@@ -36,6 +36,9 @@ import "github.com/argoproj/gitops-engine/pkg/utils/kube"
 // Sync option that enables use of --server-side flag instead of client-side
 #SyncOptionServerSideApply: "ServerSideApply=true"
 
+// Sync option that disables resource deletion
+#SyncOptionDisableDeletion: "Delete=false"
+
 #SyncPhase: string
 
 #SyncPhasePreSync:  "PreSync"

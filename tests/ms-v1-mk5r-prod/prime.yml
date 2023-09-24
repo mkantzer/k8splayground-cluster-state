@@ -1,0 +1,333 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: ms-v1-networked-networked-gatewayed
+  labels:
+    name: ms-v1-networked-networked-gatewayed
+    macroservice: dummymacro
+    repo: cluster-state
+    team: Platform
+    namespace: dummynamespace
+    mesoservice: ms-v1-networked
+spec:
+  selector:
+    name: ms-v1-networked-networked
+    macroservice: dummymacro
+    repo: cluster-state
+    team: Platform
+    namespace: dummynamespace
+    mesoservice: ms-v1-networked
+  ports:
+    - name: gatewayed
+      port: 80
+      targetPort: 8080
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: ms-v1-networked-networked-nongatewayd
+  labels:
+    name: ms-v1-networked-networked-nongatewayd
+    macroservice: dummymacro
+    repo: cluster-state
+    team: Platform
+    namespace: dummynamespace
+    mesoservice: ms-v1-networked
+spec:
+  selector:
+    name: ms-v1-networked-networked
+    macroservice: dummymacro
+    repo: cluster-state
+    team: Platform
+    namespace: dummynamespace
+    mesoservice: ms-v1-networked
+  ports:
+    - name: nongatewayd
+      port: 9999
+      targetPort: 9999
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: ms-v1-networked-sa
+  labels:
+    name: ms-v1-networked-sa
+    macroservice: dummymacro
+    repo: cluster-state
+    team: Platform
+    namespace: dummynamespace
+    mesoservice: ms-v1-networked
+  annotations: {}
+---
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: ms-v1-networked-networked
+  labels:
+    name: ms-v1-networked-networked
+    macroservice: dummymacro
+    repo: cluster-state
+    team: Platform
+    namespace: dummynamespace
+    mesoservice: ms-v1-networked
+spec:
+  scaleTargetRef:
+    apiVersion: argoproj.io/v1alpha1
+    kind: Rollout
+    name: ms-v1-networked-networked
+  minReplicas: 3
+  maxReplicas: 30
+  metrics:
+    - type: Resource
+      resource:
+        name: memory
+        target:
+          type: Utilization
+          averageUtilization: 75
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: 75
+---
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: ms-v1-networked-non-networked
+  labels:
+    name: ms-v1-networked-non-networked
+    macroservice: dummymacro
+    repo: cluster-state
+    team: Platform
+    namespace: dummynamespace
+    mesoservice: ms-v1-networked
+spec:
+  scaleTargetRef:
+    apiVersion: argoproj.io/v1alpha1
+    kind: Rollout
+    name: ms-v1-networked-non-networked
+  minReplicas: 3
+  maxReplicas: 30
+  metrics:
+    - type: Resource
+      resource:
+        name: memory
+        target:
+          type: Utilization
+          averageUtilization: 75
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: 75
+---
+apiVersion: gateway.networking.k8s.io/v1beta1
+kind: HTTPRoute
+metadata:
+  name: ms-v1-networked-networked-gatewayed-internal
+  labels:
+    name: ms-v1-networked-networked-gatewayed-internal
+    macroservice: dummymacro
+    repo: cluster-state
+    team: Platform
+    namespace: dummynamespace
+    mesoservice: ms-v1-networked
+spec:
+  parentRefs:
+    - name: internal-gateway
+      namespace: gateways
+      sectionName: http
+  hostnames:
+    - main-gateway.internal
+    - main-gateway.internal
+    - main-gateway.internal
+    - '*.main-gateway.internal'
+  rules:
+    - matches:
+        - path:
+            type: PathPrefix
+            value: /v1/test
+      backendRefs:
+        - name: ms-v1-networked-networked-gatewayed
+          port: 80
+---
+apiVersion: gateway.networking.k8s.io/v1beta1
+kind: HTTPRoute
+metadata:
+  name: ms-v1-networked-networked-gatewayed-external
+  labels:
+    name: ms-v1-networked-networked-gatewayed-external
+    macroservice: dummymacro
+    repo: cluster-state
+    team: Platform
+    namespace: dummynamespace
+    mesoservice: ms-v1-networked
+spec:
+  parentRefs:
+    - name: external-gateway
+      namespace: gateways
+      sectionName: https
+  hostnames:
+    - admin.kantzer.io
+    - '*.admin.kantzer.io'
+    - api.kantzer.io
+    - '*.api.kantzer.io'
+    - www.kantzer.io
+    - '*.www.kantzer.io'
+  rules:
+    - matches:
+        - path:
+            type: PathPrefix
+            value: /v1/test
+      backendRefs:
+        - name: ms-v1-networked-networked-gatewayed
+          port: 80
+---
+apiVersion: argoproj.io/v1alpha1
+kind: Rollout
+metadata:
+  name: ms-v1-networked-networked
+  labels:
+    name: ms-v1-networked-networked
+    macroservice: dummymacro
+    repo: cluster-state
+    team: Platform
+    namespace: dummynamespace
+    mesoservice: ms-v1-networked
+spec:
+  minReadySeconds: 0
+  revisionHistoryLimit: 10
+  progressDeadlineSeconds: 600
+  progressDeadlineAbort: false
+  selector:
+    matchLabels:
+      name: ms-v1-networked-networked
+      macroservice: dummymacro
+      repo: cluster-state
+      team: Platform
+      namespace: dummynamespace
+      mesoservice: ms-v1-networked
+  analysis: {}
+  strategy:
+    canary: {}
+  template:
+    metadata:
+      labels:
+        name: ms-v1-networked-networked
+        macroservice: dummymacro
+        repo: cluster-state
+        team: Platform
+        namespace: dummynamespace
+        mesoservice: ms-v1-networked
+    spec:
+      serviceAccountName: ms-v1-networked-sa
+      containers:
+        - name: networked
+          image: ealen/echo-server:0.5.1
+          imagePullPolicy: Always
+          env:
+            - name: INTERNAL_API_BASE_URL
+              value: http://main-gateway.internal:80
+            - name: INTERNAL_API_BASE_SCHEME
+              value: http://
+            - name: INTERNAL_API_BASE_HOST
+              value: main-gateway.internal
+            - name: INTERNAL_API_BASE_PORT
+              value: :80
+            - name: INTERNAL_API_BASE_PATH
+              value: ""
+            - name: PGSQL_MS-V1-NETWORKED_SCHEME
+              value: postgresql://
+            - name: PGSQL_MS-V1-NETWORKED_HOST
+              value: ms-v1-networked.postgress.internal
+            - name: PGSQL_MS-V1-NETWORKED_PORT
+              value: :5432
+            - name: PGSQL_MS-V1-NETWORKED_PATH
+              value: /ms-v1-networked
+          resources:
+            requests:
+              cpu: 250m
+              memory: 1Gi
+            limits:
+              cpu: 500m
+              memory: 2Gi
+          ports:
+            - name: gatewayed
+              protocol: TCP
+              containerPort: 8080
+            - name: nongatewayd
+              protocol: TCP
+              containerPort: 9999
+---
+apiVersion: argoproj.io/v1alpha1
+kind: Rollout
+metadata:
+  name: ms-v1-networked-non-networked
+  labels:
+    name: ms-v1-networked-non-networked
+    macroservice: dummymacro
+    repo: cluster-state
+    team: Platform
+    namespace: dummynamespace
+    mesoservice: ms-v1-networked
+spec:
+  minReadySeconds: 0
+  revisionHistoryLimit: 10
+  progressDeadlineSeconds: 600
+  progressDeadlineAbort: false
+  selector:
+    matchLabels:
+      name: ms-v1-networked-non-networked
+      macroservice: dummymacro
+      repo: cluster-state
+      team: Platform
+      namespace: dummynamespace
+      mesoservice: ms-v1-networked
+  analysis: {}
+  strategy:
+    canary: {}
+  template:
+    metadata:
+      labels:
+        name: ms-v1-networked-non-networked
+        macroservice: dummymacro
+        repo: cluster-state
+        team: Platform
+        namespace: dummynamespace
+        mesoservice: ms-v1-networked
+    spec:
+      serviceAccountName: ms-v1-networked-sa
+      containers:
+        - name: non-networked
+          image: ealen/echo-server:0.5.1
+          imagePullPolicy: Always
+          env:
+            - name: INTERNAL_API_BASE_URL
+              value: http://main-gateway.internal:80
+            - name: INTERNAL_API_BASE_SCHEME
+              value: http://
+            - name: INTERNAL_API_BASE_HOST
+              value: main-gateway.internal
+            - name: INTERNAL_API_BASE_PORT
+              value: :80
+            - name: INTERNAL_API_BASE_PATH
+              value: ""
+            - name: PGSQL_MS-V1-NETWORKED_SCHEME
+              value: postgresql://
+            - name: PGSQL_MS-V1-NETWORKED_HOST
+              value: ms-v1-networked.postgress.internal
+            - name: PGSQL_MS-V1-NETWORKED_PORT
+              value: :5432
+            - name: PGSQL_MS-V1-NETWORKED_PATH
+              value: /ms-v1-networked
+          resources:
+            requests:
+              cpu: 250m
+              memory: 1Gi
+            limits:
+              cpu: 500m
+              memory: 2Gi
+          ports: []
+

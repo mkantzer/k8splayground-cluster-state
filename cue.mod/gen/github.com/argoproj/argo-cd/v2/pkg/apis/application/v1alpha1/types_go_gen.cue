@@ -6,6 +6,8 @@ package v1alpha1
 
 import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/util/intstr"
 	synccommon "github.com/argoproj/gitops-engine/pkg/sync/common"
 	"k8s.io/apimachinery/pkg/watch"
 	"github.com/argoproj/gitops-engine/pkg/health"
@@ -44,7 +46,7 @@ import (
 	syncPolicy?: null | #SyncPolicy @go(SyncPolicy,*SyncPolicy) @protobuf(4,bytes)
 
 	// IgnoreDifferences is a list of resources and their fields which should be ignored during comparison
-	ignoreDifferences?: [...#ResourceIgnoreDifferences] @go(IgnoreDifferences,[]ResourceIgnoreDifferences) @protobuf(5,bytes)
+	ignoreDifferences?: #IgnoreDifferences @go(IgnoreDifferences) @protobuf(5,bytes)
 
 	// Info contains a list of information (URLs, email addresses, and plain text) that relates to the application
 	info?: [...#Info] @go(Info,[]Info) @protobuf(6,bytes)
@@ -59,6 +61,8 @@ import (
 	// Sources is a reference to the location of the application's manifests or chart
 	sources?: #ApplicationSources @go(Sources) @protobuf(8,bytes,opt)
 }
+
+#IgnoreDifferences: [...#ResourceIgnoreDifferences]
 
 #TrackingMethod: string
 
@@ -166,7 +170,8 @@ import (
 	// ReleaseName is the Helm release name to use. If omitted it will use the application name
 	releaseName?: string @go(ReleaseName) @protobuf(3,bytes,opt)
 
-	// Values specifies Helm values to be passed to helm template, typically defined as a block
+	// Values specifies Helm values to be passed to helm template, typically defined as a block. ValuesObject takes precedence over Values, so use one or the other.
+	// +patchStrategy=replace
 	values?: string @go(Values) @protobuf(4,bytes,opt)
 
 	// FileParameters are file parameters to the helm template
@@ -183,6 +188,10 @@ import (
 
 	// SkipCrds skips custom resource definition installation step (Helm's --skip-crds)
 	skipCrds?: bool @go(SkipCrds) @protobuf(9,bytes,opt)
+
+	// ValuesObject specifies Helm values to be passed to helm template, defined as a map. This takes precedence over Values.
+	// +kubebuilder:pruning:PreserveUnknownFields
+	valuesObject?: null | runtime.#RawExtension @go(ValuesObject,*runtime.RawExtension) @protobuf(10,bytes,opt)
 }
 
 // HelmParameter is a parameter that's passed to helm template during manifest generation
@@ -237,7 +246,26 @@ import (
 
 	// ForceCommonAnnotations specifies whether to force applying common annotations to resources for Kustomize apps
 	forceCommonAnnotations?: bool @go(ForceCommonAnnotations) @protobuf(8,bytes,opt)
+
+	// Namespace sets the namespace that Kustomize adds to all resources
+	namespace?: string @go(Namespace) @protobuf(9,bytes,opt)
+
+	// CommonAnnotationsEnvsubst specifies whether to apply env variables substitution for annotation values
+	commonAnnotationsEnvsubst?: bool @go(CommonAnnotationsEnvsubst) @protobuf(10,bytes,opt)
+
+	// Replicas is a list of Kustomize Replicas override specifications
+	replicas?: #KustomizeReplicas @go(Replicas) @protobuf(11,bytes,opt)
 }
+
+#KustomizeReplica: {
+	// Name of Deployment or StatefulSet
+	name: string @go(Name) @protobuf(1,bytes)
+
+	// Number of replicas
+	count: intstr.#IntOrString @go(Count) @protobuf(2,bytes)
+}
+
+#KustomizeReplicas: [...#KustomizeReplica]
 
 // JsonnetVar represents a variable to be passed to jsonnet during manifest generation
 #JsonnetVar: {
@@ -273,19 +301,19 @@ import (
 	include?: string @go(Include) @protobuf(4,bytes,opt)
 }
 
-#ApplicationSourcePluginParameter: {
-	// Name is the name identifying a parameter.
-	name?: string @go(Name) @protobuf(1,bytes,opt)
-
-	// String_ is the value of a string type parameter.
-	"string"?: null | string @go(String_,*string) @protobuf(5,bytes,opt)
-
+#OptionalMap: {
 	// Map is the value of a map type parameter.
-	map?: {[string]: string} @go(Map,map[string]string) @protobuf(3,bytes,rep)
-
-	// Array is the value of an array type parameter.
-	array?: [...string] @go(Array,[]string) @protobuf(4,bytes,rep)
+	// +optional
+	map: {[string]: string} @go(Map,map[string]string) @protobuf(1,bytes,rep)
 }
+
+#OptionalArray: {
+	// Array is the value of an array type parameter.
+	// +optional
+	array: [...string] @go(Array,[]string) @protobuf(1,bytes,rep)
+}
+
+#ApplicationSourcePluginParameter: _
 
 #ApplicationSourcePluginParameters: [...#ApplicationSourcePluginParameter]
 
@@ -339,6 +367,9 @@ import (
 
 	// SourceTypes specifies the type of the sources included in the application
 	sourceTypes?: [...#ApplicationSourceType] @go(SourceTypes,[]ApplicationSourceType) @protobuf(12,bytes,opt)
+
+	// ControllerNamespace indicates the namespace in which the application controller is located
+	controllerNamespace?: string @go(ControllerNamespace) @protobuf(13,bytes,opt)
 }
 
 // JWTTokens represents a list of JWT tokens
@@ -495,7 +526,7 @@ import (
 	// Prune specifies whether to delete resources from the cluster that are not found in the sources anymore as part of automated sync (default: false)
 	prune?: bool @go(Prune) @protobuf(1,bytes,opt)
 
-	// SelfHeal specifes whether to revert resources back to their desired state upon modification in the cluster (default: false)
+	// SelfHeal specifies whether to revert resources back to their desired state upon modification in the cluster (default: false)
 	selfHeal?: bool @go(SelfHeal) @protobuf(2,bytes,opt)
 
 	// AllowEmpty allows apps have zero live resources (default: false)
@@ -546,6 +577,17 @@ import (
 	signatureInfo?: string @go(SignatureInfo) @protobuf(5,bytes,opt)
 }
 
+// ChartDetails contains helm chart metadata for a specific version
+#ChartDetails: {
+	description?: string @go(Description) @protobuf(1,bytes,opt)
+
+	// The URL of this projects home page, e.g. "http://example.com"
+	home?: string @go(Home) @protobuf(2,bytes,opt)
+
+	// List of maintainer details, name and email, e.g. ["John Doe <john_doe@my-company.com>"]
+	maintainers?: [...string] @go(Maintainers,[]string) @protobuf(3,bytes,opt)
+}
+
 // SyncOperationResult represent result of sync operation
 #SyncOperationResult: {
 	// Resources contains a list of sync result items for each individual resource in a sync operation
@@ -562,6 +604,9 @@ import (
 
 	// Revisions holds the revision this sync operation was performed for respective indexed source in sources field
 	revisions?: [...string] @go(Revisions,[]string) @protobuf(5,bytes,opt)
+
+	// ManagedNamespaceMetadata contains the current sync state of managed namespace metadata
+	managedNamespaceMetadata?: null | #ManagedNamespaceMetadata @go(ManagedNamespaceMetadata,*ManagedNamespaceMetadata) @protobuf(6,bytes,opt)
 }
 
 // ResourceResult holds the operation result details of a specific resource
@@ -707,7 +752,7 @@ import (
 // ApplicationConditionOrphanedResourceWarning indicates that application has orphaned resources
 #ApplicationConditionOrphanedResourceWarning: "OrphanedResourceWarning"
 
-// ApplicationCondition contains details about an application condition, which is usally an error or warning
+// ApplicationCondition contains details about an application condition, which is usually an error or warning
 #ApplicationCondition: {
 	// Type is an application condition type
 	type: string @go(Type) @protobuf(1,bytes,opt)
@@ -729,6 +774,9 @@ import (
 
 	// Sources is a reference to the application's multiple sources used for comparison
 	sources?: #ApplicationSources @go(Sources) @protobuf(3,bytes,opt)
+
+	// IgnoreDifferences is a reference to the application's ignored differences used for comparison
+	ignoreDifferences?: #IgnoreDifferences @go(IgnoreDifferences) @protobuf(4,bytes,opt)
 }
 
 // SyncStatus contains information about the currently observed live and desired states of an application
@@ -1074,10 +1122,10 @@ import (
 // OverrideIgnoreDiff contains configurations about how fields should be ignored during diffs between
 // the desired state and live state
 #OverrideIgnoreDiff: {
-	//JSONPointers is a JSON path list following the format defined in RFC4627 (https://datatracker.ietf.org/doc/html/rfc6902#section-3)
+	// JSONPointers is a JSON path list following the format defined in RFC4627 (https://datatracker.ietf.org/doc/html/rfc6902#section-3)
 	jsonPointers: [...string] @go(JSONPointers,[]string) @protobuf(1,bytes,rep,name=jSONPointers)
 
-	//JQPathExpressions is a JQ path list that will be evaludated during the diff process
+	// JQPathExpressions is a JQ path list that will be evaludated during the diff process
 	jqPathExpressions: [...string] @go(JQPathExpressions,[]string) @protobuf(2,bytes,opt)
 
 	// ManagedFieldsManagers is a list of trusted managers. Fields mutated by those managers will take precedence over the
@@ -1090,6 +1138,7 @@ _#rawResourceOverride: {
 	"health.lua.useOpenLibs"?: bool   @go(UseOpenLibs)
 	actions?:                  string @go(Actions)
 	ignoreDifferences?:        string @go(IgnoreDifferences)
+	ignoreResourceUpdates?:    string @go(IgnoreResourceUpdates)
 	knownTypeFields?: [...#KnownTypeField] @go(KnownTypeFields,[]KnownTypeField)
 }
 
@@ -1116,7 +1165,9 @@ _#rawResourceOverride: {
 #ResourceAction: {
 	name?: string @go(Name) @protobuf(1,bytes,opt)
 	params?: [...#ResourceActionParam] @go(Params,[]ResourceActionParam) @protobuf(2,bytes,rep)
-	disabled?: bool @go(Disabled) @protobuf(3,varint,opt)
+	disabled?:    bool   @go(Disabled) @protobuf(3,varint,opt)
+	iconClass?:   string @go(IconClass) @protobuf(4,bytes,opt)
+	displayName?: string @go(DisplayName) @protobuf(5,bytes,opt)
 }
 
 // TODO: describe this type
@@ -1218,7 +1269,7 @@ _#rawResourceOverride: {
 	// ManualSync enables manual syncs when they would otherwise be blocked
 	manualSync?: bool @go(ManualSync) @protobuf(7,bytes,opt)
 
-	//TimeZone of the sync that will be applied to the schedule
+	// TimeZone of the sync that will be applied to the schedule
 	timeZone?: string @go(TimeZone) @protobuf(8,bytes,opt)
 }
 

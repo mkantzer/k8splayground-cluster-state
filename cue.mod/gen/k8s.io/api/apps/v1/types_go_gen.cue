@@ -16,11 +16,13 @@ import (
 #DeprecatedRollbackTo:           "deprecated.deployment.rollback.to"
 #DeprecatedTemplateGeneration:   "deprecated.daemonset.template.generation"
 #StatefulSetPodNameLabel:        "statefulset.kubernetes.io/pod-name"
+#PodIndexLabel:                  "apps.kubernetes.io/pod-index"
 
 // StatefulSet represents a set of pods with consistent identities.
 // Identities are defined as:
-//  - Network: A single stable DNS and hostname.
-//  - Storage: As many VolumeClaims as requested.
+//   - Network: A single stable DNS and hostname.
+//   - Storage: As many VolumeClaims as requested.
+//
 // The StatefulSet guarantees that a given network identity will always
 // map to the same storage identity.
 #StatefulSet: {
@@ -155,6 +157,21 @@ import (
 	whenScaled?: #PersistentVolumeClaimRetentionPolicyType @go(WhenScaled) @protobuf(2,bytes,opt,casttype=PersistentVolumeClaimRetentionPolicyType)
 }
 
+// StatefulSetOrdinals describes the policy used for replica ordinal assignment
+// in this StatefulSet.
+#StatefulSetOrdinals: {
+	// start is the number representing the first replica's index. It may be used
+	// to number replicas from an alternate index (eg: 1-indexed) over the default
+	// 0-indexed names, or to orchestrate progressive movement of replicas from
+	// one StatefulSet to another.
+	// If set, replica indices will be in the range:
+	//   [.spec.ordinals.start, .spec.ordinals.start + .spec.replicas).
+	// If unset, defaults to 0. Replica indices will be in the range:
+	//   [0, .spec.replicas).
+	// +optional
+	start: int32 @go(Start) @protobuf(1,varint,opt)
+}
+
 // A StatefulSetSpec is the specification of a StatefulSet.
 #StatefulSetSpec: {
 	// replicas is the desired number of replicas of the given Template.
@@ -173,7 +190,10 @@ import (
 	// template is the object that describes the pod that will be created if
 	// insufficient replicas are detected. Each pod stamped out by the StatefulSet
 	// will fulfill this Template, but have a unique identity from the rest
-	// of the StatefulSet.
+	// of the StatefulSet. Each pod will be named with the format
+	// <statefulsetname>-<podindex>. For example, a pod in a StatefulSet named
+	// "web" with index number "3" would be named "web-3".
+	// The only allowed template.spec.restartPolicy value is "Always".
 	template: v1.#PodTemplateSpec @go(Template) @protobuf(3,bytes,opt)
 
 	// volumeClaimTemplates is a list of claims that pods are allowed to reference.
@@ -218,7 +238,6 @@ import (
 	// Minimum number of seconds for which a newly created pod should be ready
 	// without any of its container crashing for it to be considered available.
 	// Defaults to 0 (pod will be considered available as soon as it is ready)
-	// This is an alpha field and requires enabling StatefulSetMinReadySeconds feature gate.
 	// +optional
 	minReadySeconds?: int32 @go(MinReadySeconds) @protobuf(9,varint,opt)
 
@@ -230,6 +249,14 @@ import (
 	// down. This requires the StatefulSetAutoDeletePVC feature gate to be enabled,
 	// which is alpha.  +optional
 	persistentVolumeClaimRetentionPolicy?: null | #StatefulSetPersistentVolumeClaimRetentionPolicy @go(PersistentVolumeClaimRetentionPolicy,*StatefulSetPersistentVolumeClaimRetentionPolicy) @protobuf(10,bytes,opt)
+
+	// ordinals controls the numbering of replica indices in a StatefulSet. The
+	// default ordinals behavior assigns a "0" index to the first replica and
+	// increments the index by one for each additional replica requested. Using
+	// the ordinals field requires the StatefulSetStartOrdinal feature gate to be
+	// enabled, which is beta.
+	// +optional
+	ordinals?: null | #StatefulSetOrdinals @go(Ordinals,*StatefulSetOrdinals) @protobuf(11,bytes,opt)
 }
 
 // StatefulSetStatus represents the current state of a StatefulSet.
@@ -274,7 +301,6 @@ import (
 	conditions?: [...#StatefulSetCondition] @go(Conditions,[]StatefulSetCondition) @protobuf(10,bytes,rep)
 
 	// Total number of available pods (ready for at least minReadySeconds) targeted by this statefulset.
-	// This is a beta field and enabled/disabled by StatefulSetMinReadySeconds feature gate.
 	// +optional
 	availableReplicas: int32 @go(AvailableReplicas) @protobuf(11,varint,opt)
 }
@@ -346,6 +372,7 @@ import (
 	selector?: null | metav1.#LabelSelector @go(Selector,*metav1.LabelSelector) @protobuf(2,bytes,opt)
 
 	// Template describes the pods that will be created.
+	// The only allowed template.spec.restartPolicy value is "Always".
 	template: v1.#PodTemplateSpec @go(Template) @protobuf(3,bytes,opt)
 
 	// The deployment strategy to use to replace existing pods with new ones.
@@ -599,7 +626,6 @@ import (
 	// daemonset on any given node can double if the readiness check fails, and
 	// so resource intensive daemonsets should take into account that they may
 	// cause evictions during disruption.
-	// This is beta field and enabled/disabled by DaemonSetUpdateSurge feature gate.
 	// +optional
 	maxSurge?: null | intstr.#IntOrString @go(MaxSurge,*intstr.IntOrString) @protobuf(2,bytes,opt)
 }
@@ -616,6 +642,7 @@ import (
 	// The DaemonSet will create exactly one copy of this pod on every node
 	// that matches the template's node selector (or on every node if no node
 	// selector is specified).
+	// The only allowed template.spec.restartPolicy value is "Always".
 	// More info: https://kubernetes.io/docs/concepts/workloads/controllers/replicationcontroller#pod-template
 	template: v1.#PodTemplateSpec @go(Template) @protobuf(2,bytes,opt)
 
@@ -824,7 +851,7 @@ import (
 
 // ReplicaSetStatus represents the current status of a ReplicaSet.
 #ReplicaSetStatus: {
-	// Replicas is the most recently oberved number of replicas.
+	// Replicas is the most recently observed number of replicas.
 	// More info: https://kubernetes.io/docs/concepts/workloads/controllers/replicationcontroller/#what-is-a-replicationcontroller
 	replicas: int32 @go(Replicas) @protobuf(1,varint,opt)
 

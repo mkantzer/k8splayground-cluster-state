@@ -1,0 +1,493 @@
+---
+name: Validate Cuelang
+on:
+  pull_request:
+    branches: [main]
+
+# Note: Github Actions _does not_ have a built-in method for collecting _all_ outputs of _all_ instances of a `matrix` execution.
+# https://github.com/orgs/community/discussions/17245
+# As such, we are forced to use a common workaround: uploading desired outputs to an `Artifact`, and then collecting and reading it later.
+# https://github.com/orgs/community/discussions/17245#discussioncomment-3814009
+# We are using CloudPosse's implementation for this:
+# https://github.com/cloudposse/github-action-matrix-outputs-read
+# https://github.com/cloudposse/github-action-matrix-outputs-write
+
+
+# Note: Github Actions is weird about outputs:
+# For a consistent `empty string` (vs `null`), you need to do echo "key=\"\""
+
+
+jobs:
+
+  # Ensure all cuelang is properly formatted, and error with message if it's not.
+  # We're using cue's built-in fmt tool, with the "simplify" flag set to collapse
+  # object structures.
+  check-format:
+    runs-on: ubuntu-latest
+    steps:
+      - name: checkout
+        uses: actions/checkout@3df4ab11eba7bda6032a0b82a6bb43b11571feac
+      - name: set up cuelang
+        uses: Cue-lang/setup-cue@v1.0.0
+        with:
+          version: 'v0.5.0'
+      - name: format cue
+        run: cue fmt -s ./...
+      - name: check for modified files
+        id: fmt-check
+        run: echo "modified=$(if git diff --quiet --exit-code; then echo "false"; else echo "true"; fi)" >> $GITHUB_OUTPUT
+      - name: fmt status
+        if: steps.fmt-check.outputs.modified == 'true'
+        run: |-
+          echo "Cuelang files not formatted correctly. Run 'cue fmt -s ./...' and commit results."
+          exit 1
+
+
+  # Crawl the repo to get the list of cue instances we want to check, organized by kinds of checks.
+  # All are checked to ensure they _can_ render.
+  # test-list contains the schema validation "unit" tests: They're diff'd vs a preset expected output.
+  # meso-list contains the mesoservice instances: Their output is diff'd against `main` to see proposed changes.
+  #   It includes both the primary instances, as well as the onboarding instance.
+  # note: outputs will be of structure `["./some/path/to/instance`", "./another/path"]
+  generate-instances:
+    runs-on: ubuntu-latest
+    steps:
+      - name: checkout
+        uses: actions/checkout@3df4ab11eba7bda6032a0b82a6bb43b11571feac
+      - name: get test list
+        id: test-list
+        run: |-
+          list=$(find ./tests -mindepth 1 -maxdepth 1 -type d | jq -Rc '[.,inputs]')
+          echo "List:"
+          echo ${list} | jq
+          echo "list=${list}" >> $GITHUB_OUTPUT
+      - name: get mesoservices list
+        id: meso-list
+        run: |-
+          # Collect primary instances
+          list=$(find ./mesoservices -mindepth 1 -maxdepth 1 -type d | jq -Rc '[.,inputs]')
+          # Add onboarding instance
+          list=$(echo ${list} | jq -c '. += ["./onboarding"]')
+          echo "List:"
+          echo ${list} | jq
+          echo "list=${list}" >> $GITHUB_OUTPUT
+    outputs:
+      test-list: ${{ steps.test-list.outputs.list }}
+      meso-list: ${{ steps.meso-list.outputs.list }}
+
+  # Runs a job for each entry in the `test-list`:
+  # - Render the instance to `[context].yml`
+  # - Check if the new `[context].yml` has a git diff with the checked-in version
+  # - If diff, fail
+  # - output results as maps of ctx: result
+  run-tests:
+    runs-on: ubuntu-latest
+    needs:
+      - generate-instances
+    strategy:
+      fail-fast: false # We want to run and report the whole matrix , even if some fail.
+      matrix:
+        dir: ${{ fromJSON(needs.generate-instances.outputs.test-list) }}
+    defaults:
+      run:
+        working-directory: ${{ matrix.dir }}
+    steps:
+      - name: checkout
+        uses: actions/checkout@3df4ab11eba7bda6032a0b82a6bb43b11571feac
+      - name: set up cuelang
+        uses: Cue-lang/setup-cue@v1.0.0
+        with:
+          version: 'v0.5.0'
+      - name: Dump needed contexts
+        id: dump-tests
+        run: |-
+          # Initialize some vars
+          failures=()
+          output="{}"
+          # Only run dumps that have declared test outputs
+          for ctx in *.yml
+          do
+            # Strip file extension to get dump context
+            truectx=${ctx%.*}
+            echo "Dumping context: ${truectx}"
+            # Do the dump, branch on success/fail
+            if cue -t ctx=${truectx} dump > ${truectx}.yml ;
+            # Fill in JSON map of dump name and "did it fail?"
+            then
+              echo "Dump succeeded"
+              output=$(echo ${output} | jq -c ". += {\"$truectx\": false}")
+            else
+              echo "Dump failed"
+              output=$(echo ${output} | jq -c ". += {\"$truectx\": true}")
+              failures+=($truectx)
+            fi
+          done
+
+          echo "JQ-prettied output:"
+          echo "$output" | jq
+          # b64 encode the output, for easier passing
+          base64Output=$(echo "$output" | base64 -w 0)
+          echo "errored=$base64Output" >> "$GITHUB_OUTPUT"
+          # Exit with error if any dumps failed.
+          if [ ${#failures[@]} -ne 0 ]; then exit 1; fi
+      - name: Render and output diffs
+        id: get-diff
+        run: |-
+          # Initialize some vars
+          modified=false
+          output="{}"
+          # Only check dumps that have declared test outputs
+          for ctx in *.yml
+          do
+            # Strip file extension to get dump context
+            truectx=${ctx%.*}
+            echo "Diffing file: ${ctx}"
+            # Append git-diff, encoded as base64, to map with key==context
+            diff=$(git diff -- ${ctx} | base64 -w 0)
+            # If there's a diff, set modified flag
+            [ -z "$diff" ] || modified=true
+            output=$(echo ${output} | jq -c ". += {\"$truectx\": \"$diff\"}")
+          done
+          echo "JQ-prettied output:"
+          echo "$output" | jq
+
+          # b64 encode the output, for easier passing
+          base64Output=$(echo "$output" | base64 -w 0)
+          echo "diffs=$base64Output" >> "$GITHUB_OUTPUT"
+          echo "modified=${modified}" >> "$GITHUB_OUTPUT"
+      - name: test status
+        if: steps.get-diff.outputs.modified == 'true'
+        run: |-
+          echo "Test ${{ matrix.dir }} failed."
+          exit 1 # explicitly mark a test as failed
+      # Submit outputs to an artifact for collection
+      - uses: cloudposse/github-action-matrix-outputs-write@0.4.2
+        id: out
+        # Report even if errored or failed.
+        if: '!cancelled()'
+        with:
+          matrix-step-name: ${{ github.job }}
+          matrix-key: ${{ matrix.dir }}
+          outputs: |-
+            errored: ${{ steps.dump-tests.outputs.errored }}
+            modified:  ${{ steps.get-diff.outputs.modified }}
+            diffs: ${{ steps.get-diff.outputs.diffs }}
+
+  # Runs a job for each entry in `meso-list` and `onboard-list:
+  # - checkout both the pr and `main` to different directories
+  # - For each context, render both to root of workspace (main-[context].yml / pr-[context].yml)
+  #    - If the instance is new, and therefor not present on `main`,
+  #        construct empty `main-[context].yml`s
+  # - Diff the rendered files
+  # - Report on errors, diffs.
+  diff-mesoservices:
+    runs-on: ubuntu-latest
+    needs:
+      - generate-instances
+    strategy:
+      fail-fast: false # We want to run and report the whole matrix , even if some fail.
+      matrix:
+        dir: ${{ fromJSON(needs.generate-instances.outputs.meso-list) }}
+    env:
+      # Set context list based on instance directory
+      CONTEXTS_TO_CHECK: ${{ startsWith(matrix.dir, './mesoservices') && 'prime' || 'onboard' }}
+      # CONTEXTS_TO_CHECK: ${{ startsWith(matrix.dir, './mesoservices') && 'prime qa smoke cloudresources workflow' || 'onboard' }}
+    steps:
+      - name: set up cuelang
+        uses: Cue-lang/setup-cue@v1.0.0
+        with:
+          version: 'v0.5.0'
+      - name: checkout main
+        uses: actions/checkout@3df4ab11eba7bda6032a0b82a6bb43b11571feac
+        with:
+          ref: main
+          path: main
+      - name: checkout PR
+        uses: actions/checkout@3df4ab11eba7bda6032a0b82a6bb43b11571feac
+        with:
+          ref: '' # defaults to PR ref
+          path: pr
+      # If the instance is new, the `dump main` step will error. We need to handle that case.
+      # We do so by checking for it, and if it isn't present, we manually place
+      # an empty `main.yml` in the root.
+      - name: check main for instance
+        id: main-check
+        run: |-
+          # GHA doesn't like square-bracket tests in the first line of a run block.
+          # I'm pretty sure their parser is just stupid, and tries to read it as a YAML array.
+          if test -d './main/${{ matrix.dir }}'
+          then
+            echo "existsonmain=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "existsonmain=false" >> "$GITHUB_OUTPUT"
+          fi
+      - name: generate empty main-*.yml
+        if: ${{ steps.main-check.outputs.existsonmain == 'false' }}
+        run: for ctx in ${CONTEXTS_TO_CHECK}; do touch "main-${ctx}.yml"; done
+
+      - name: dump main
+        if: ${{ steps.main-check.outputs.existsonmain == 'true' }}
+        id: dumo-main
+        working-directory: ./main/${{ matrix.dir }}
+        run: |-
+          # Initialize some vars
+          failures=()
+          output="{}"
+          for ctx in ${CONTEXTS_TO_CHECK[@]}; do
+            echo "Dumping main context: $ctx"
+            if $(cue -t ctx=${ctx} dump > $GITHUB_WORKSPACE/main-${ctx}.yml) ; then
+              echo "Dump succeeded."
+              output=$(echo ${output} | jq -c ". += {\"$ctx\": false}")
+            else
+              echo "Dump failed."
+              output=$(echo ${output} | jq -c ". += {\"$ctx\": true}")
+              failures+=($ctx)
+            fi
+          done
+
+          echo "JQ-prettied output:"
+          echo "$output" | jq
+          # actually, we probably maybe don't need this? Don't want to block because _main_ is broken.
+          # b64 encode the output, for easier passing
+          base64Output=$(echo "$output" | base64 -w 0)
+          echo "errored=$base64Output" >> "$GITHUB_OUTPUT"
+          # # Exit with error if any dumps failed.
+          # if [ ${#failures[@]} -ne 0 ] ; then exit 1; fi
+      - name: dump pr
+        id: dump-pr
+        working-directory: ./pr/${{ matrix.dir }}
+        run: |-
+          # Initialize some vars
+          failures=()
+          output="{}"
+          for ctx in ${CONTEXTS_TO_CHECK[@]}; do
+            echo "Dumping pr context: $ctx"
+            if $(cue -t ctx=${ctx} dump > $GITHUB_WORKSPACE/pr-${ctx}.yml) ; then
+              echo "Dump succeeded."
+              output=$(echo ${output} | jq -c ". += {\"$ctx\": false}")
+            else
+              echo "Dump failed."
+              output=$(echo ${output} | jq -c ". += {\"$ctx\": true}")
+              failures+=($ctx)
+            fi
+          done
+
+          echo "JQ-prettied output:"
+          echo "$output" | jq
+          # b64 encode the output, for easier passing
+          base64Output=$(echo "$output" | base64 -w 0)
+          echo "Base 64 output:"
+          echo "$base64Output"
+          echo "errored=$base64Output" >> "$GITHUB_OUTPUT"
+          # Exit with error if any dumps failed.
+          if [ ${#failures[@]} -ne 0 ] ; then exit 1; fi
+      # https://mikefarah.gitbook.io/yq/usage/tips-and-tricks#comparing-yaml-files
+      # TLDR: use yq to order the yaml consistently, then use `diff` like normal
+      - name: normalize yaml
+        uses: mikefarah/yq@v4.34.1
+        with:
+          # Cannot glob: yq just combines all inputs into a single output.
+          cmd: |
+            for ctx in ${CONTEXTS_TO_CHECK} ; do
+              yq -iP 'sort_keys(..)' main-$ctx.yml
+              yq -iP 'sort_keys(..)' pr-$ctx.yml
+            done
+      - name: Render and output diffs
+        id: get-diff
+        run: |-
+          # Initialize some vars
+          modified=false
+          output="{}"
+          # Only check dumps that have declared test outputs
+          for ctx in ${CONTEXTS_TO_CHECK[@]} ; do
+            echo "Diffing context: ${ctx}"
+            # Append git-diff, encoded as base64, to map with key==context
+            diff=$(diff -u main-${ctx}.yml pr-${ctx}.yml | base64 -w 0)
+            # If there's a diff, set modified flag
+            [ -z "$diff" ] || modified=true
+            output=$(echo ${output} | jq -c ". += {\"$ctx\": \"$diff\"}")
+          done
+          echo "JQ-prettied output:"
+          echo "$output" | jq
+          # b64 encode the output, for easier passing
+          base64Output=$(echo "$output" | base64 -w 0)
+          echo "diffs=$base64Output" >> "$GITHUB_OUTPUT"
+          echo "modified=${modified}" >> "$GITHUB_OUTPUT"
+      # Submit outputs to an artifact for collection
+      - uses: cloudposse/github-action-matrix-outputs-write@0.4.2
+        id: out
+        # Report even if errored.
+        if: '!cancelled()'
+        with:
+          matrix-step-name: ${{ github.job }}
+          matrix-key: ${{ matrix.dir }}
+          outputs: |-
+            errored: ${{ steps.dump-pr.outputs.errored }}
+            modified: ${{ steps.get-diff.outputs.modified }}
+            diffs: ${{ steps.get-diff.outputs.diffs }}
+
+  # Collect matrix outputs: GHA doesn't have a built-in way to grab "all outputs from all instances of a matrix"
+  # so we have to do a dumb workaround via artifacts. This stage collects them and then re-outputs them all together.
+  read:
+    runs-on: ubuntu-latest
+    if: '!cancelled()'
+    needs:
+      - run-tests
+      - diff-mesoservices
+    steps:
+      - uses: Cloudposse/github-action-matrix-outputs-read@0.1.1
+        id: read-tests
+        with:
+          matrix-step-name: run-tests
+      - uses: Cloudposse/github-action-matrix-outputs-read@0.1.1
+        id: read-meso
+        with:
+          matrix-step-name: diff-mesoservices
+      # Useful for debugging: prints out the full context, where you can find
+      # the full output values.
+      - name: check stuff
+        if: '!cancelled()'
+        run: echo '${{ toJson(steps) }}'
+    outputs:
+      test: "${{ steps.read-tests.outputs.result }}"
+      meso: "${{ steps.read-meso.outputs.result }}"
+
+  # Take the collected output, and surface it in a well-formatted PR Comment.
+  manage-output:
+    runs-on: ubuntu-latest
+    if: '!cancelled()'
+    needs: [read]
+    # Needed for interacting with comments
+    permissions:
+      contents: read
+      id-token: write
+      pull-requests: write
+    steps:
+      - name: checkout
+        uses: actions/checkout@3df4ab11eba7bda6032a0b82a6bb43b11571feac
+      # Take the collected matrix outputs, and transform them into a structure more useful
+      # for rendering the template. Essentially, instead of grouping outcomes by instance,
+      # group instances by outcome.
+      # We also need to decode each instance's lists of outcomes by context.
+      # Additionally, as we're now in "deal with multiline output strings" mode anyway,
+      # decode the base64 diffs while rendering. YQ is really good for this.
+      - name: Prepare Template Values
+        id: prep-temp-vals
+        uses: mikefarah/yq@v4.34.1
+        with:
+          cmd: |-
+            # Receive JSON strings, with the JSON context lists in the instance blocks still encoded as bas64
+            TEST_OUTPUT='${{ needs.read.outputs.test }}'
+            MESO_OUTPUT='${{ needs.read.outputs.meso }}'
+
+            # Decode the base64'd per-context maps, and rearrange them as objects with keys `key` and `value`, which will be more-helpful later.
+            # Note: we _do not_ decode the actual base64-encoded diff _values_ yet: we've still got some manipulation to do, and we wanna leave that as long as possible.
+            # This is purely _structural_ work.
+            # Note also that the `. // "e30K"` component is to handle the `null` case: `e30K` is base64'd `{}`
+            TEST_USABLE=$(echo $TEST_OUTPUT | yq -o=json '.errored[] |= (. // "e30K" | @base64d | from_json | to_entries) | .diffs[] |= (. // "e30K" | @base64d | from_json | to_entries) ')
+            MESO_USABLE=$(echo $MESO_OUTPUT | yq -o=json '.errored[] |= (. // "e30K" | @base64d | from_json | to_entries) | .diffs[] |= (. // "e30K" | @base64d | from_json | to_entries) ')
+
+            # Pretty-print the formatted data
+            echo "TEST_USABLE:::::::::::::::::::"
+            echo $TEST_USABLE | yq -P
+            echo "MESO_USABLE:::::::::::::::::::"
+            echo $MESO_USABLE | yq -P
+
+            # Everything needs to be YAML for the template step to operate on it.
+            # We're first constructing sub-fields (as json strings), and then will render & output a single YAML object at the end.
+
+            # Output a map of instance names to the list of of contexts that errored.
+            # How it works: First, use a reduce funtion to iterate over the entries, and construct in a different format.
+            # In the new construction: use the same instance-name'd key, but filter the values to only include the failed contexts.
+            # Then, remove any instances with an empty array. You'll be left _only_ with things pertaining to errors.
+            export ERRORED_TESTS=$(echo $TEST_USABLE | yq -o=json -I=0 '
+                (.errored | to_entries | .[]) as $i
+                ireduce({}; .[$i | .key] = ($i | .value | filter(.value == true) | from_entries | keys)) |
+                with_entries(select((.value | length) > 0))
+              ')
+            echo "ERRORED_TESTS::::::"
+            yq -nP 'env(ERRORED_TESTS)'
+
+            # Output a map of instances to a map of context names to their decoded diffs.
+            # How it works: First, use a reduce funtion to iterate over the entries, and construct in a different format.
+            # In the new construction: use the same instance-name'd key, but decode all the values and filter values to only include non-empty diffs.
+            # Then, remove any instances with an empty array. You'll be left _only_ with things that had diffs.
+            export FAILED_TESTS=$(echo $TEST_USABLE | yq -o=json -I=0 '
+                (.diffs | to_entries | .[]) as $i
+                ireduce({}; .[$i | .key] = ($i | .value | .[].value |= (. | @base64d) | filter(.value != "") | from_entries)) |
+                with_entries(select((.value | length) > 0))
+              ')
+            echo "FAILED_TESTS::::::"
+            yq -nP 'env(FAILED_TESTS)'
+
+            # These work the same as the TEST ones, simply operating on a different input
+            export ERRORED_MESO=$(echo $MESO_USABLE | yq -o=json -I=0 '
+                (.errored | to_entries | .[]) as $i
+                ireduce({}; .[$i | .key] = ($i | .value | filter(.value == true) | from_entries | keys)) |
+                with_entries(select((.value | length) > 0))
+              ')
+            echo "ERRORED_MESO::::::"
+            yq -nP 'env(ERRORED_MESO)'
+
+            export CHANGED_MESO=$(echo $MESO_USABLE | yq -o=json -I=0 '
+                (.diffs | to_entries | .[]) as $i
+                ireduce({}; .[$i | .key] = ($i | .value | .[].value |= (. | @base64d) | filter(.value != "") | from_entries)) |
+                with_entries(select((.value | length) > 0))
+              ')
+            echo "CHANGED_MESO::::::"
+            yq -nP 'env(CHANGED_MESO)'
+
+            # Generate the actual output object. Keep as single-line JSON object, to avoid rendering the newlines as newlines.
+            export OUTPUT_OBJECT=$(yq -n -o=json -I=0 '
+            {
+              "test": {
+                "errored": env(ERRORED_TESTS),
+                "changed": env(FAILED_TESTS)
+                },
+              "meso": {
+                "errored": env(ERRORED_MESO),
+                "changed": env(CHANGED_MESO)
+              },
+              "meta": {
+                "prnumber": "${{ github.event.number }}"
+              }
+            }')
+            echo "OUTPUT_OBJECT:::::::::::"
+            yq -nP 'env(OUTPUT_OBJECT)'
+
+            # Actually _output_ the object
+            # Multiline strings require random, unique delimiters for security reasons
+            # https://docs.github.com/en/actions/using-workflows/workflow-commands-for-github-actions#multiline-strings
+            EOF=$(dd if=/dev/urandom bs=15 count=1 status=none | base64)
+
+            echo "OUTPUT_OBJECT<<$EOF" >> "$GITHUB_OUTPUT"
+            yq -nP 'env(OUTPUT_OBJECT)' >> "$GITHUB_OUTPUT"
+            echo "$EOF" >> "$GITHUB_OUTPUT"
+
+      # Render the specified template file using our inputs. Note that it uses golang's standard template library.
+      - name: Render template
+        id: render-template
+        uses: chuhlomin/render-template@v1.7
+        with:
+          template: .github/cuelang-report-template.md
+          vars: ${{ steps.prep-temp-vals.outputs.OUTPUT_OBJECT }}
+
+          # Check to see if there's an existing comment from a previous run. If so, we're going to update it
+        # instead of posting a new one.
+      - name: Find Comment
+        uses: peter-evans/find-comment@v2.4.0
+        id: fc
+        with:
+          issue-number: ${{ github.event.pull_request.number }}
+          comment-author: 'github-actions[bot]'
+          body-includes: Cuelang Analysis
+
+        # If a comment already exists, update it with our rendered markdown.
+        # If not, create one (with the rendered markdown)
+      - name: Update Pull Request
+        uses: peter-evans/create-or-update-comment@v3.0.2
+        with:
+          comment-id: ${{ steps.fc.outputs.comment-id }}
+          issue-number: ${{ github.event.pull_request.number }}
+          edit-mode: replace
+          body: ${{ steps.render-template.outputs.result }}
