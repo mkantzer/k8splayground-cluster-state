@@ -15,7 +15,7 @@ import (
 	_ "github.com/argoproj/argo-cd/v2/pkg/apis/application/v1alpha1"
 	_ "github.com/argoproj/argo-rollouts/pkg/apis/rollouts/v1alpha1"
 
-	_ "github.com/GoogleCloudPlatform/prometheus-engine/pkg/operator/apis/monitoring/v1"
+	_ "github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1"
 )
 
 /*
