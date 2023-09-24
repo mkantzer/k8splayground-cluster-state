@@ -10,7 +10,15 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 )
 
-#JobCompletionIndexAnnotation: "batch.kubernetes.io/job-completion-index"
+// All Kubernetes labels need to be prefixed with Kubernetes to distinguish them from end-user labels
+// More info: https://github.com/kubernetes/community/blob/master/contributors/devel/sig-architecture/api-conventions.md#label-selector-and-annotation-conventions
+_#labelPrefix: "batch.kubernetes.io/"
+
+// CronJobScheduledTimestampAnnotation is the scheduled timestamp annotation for the Job.
+// It records the original/expected scheduled timestamp for the running job, represented in RFC3339.
+// The CronJob controller adds this annotation if the CronJobsScheduledAnnotation feature gate (beta in 1.28) is enabled.
+#CronJobScheduledTimestampAnnotation: "batch.kubernetes.io/cronjob-scheduled-timestamp"
+#JobCompletionIndexAnnotation:        "batch.kubernetes.io/job-completion-index"
 
 // JobTrackingFinalizer is a finalizer for Job's pods. It prevents them from
 // being deleted before being accounted in the Job status.
@@ -22,6 +30,24 @@ import (
 // apiserver and job controller will ignore this annotation and they will
 // always track jobs using finalizers.
 #JobTrackingFinalizer: "batch.kubernetes.io/job-tracking"
+
+// The Job labels will use batch.kubernetes.io as a prefix for all labels
+// Historically the job controller uses unprefixed labels for job-name and controller-uid and
+// Kubernetes continutes to recognize those unprefixed labels for consistency.
+#JobNameLabel: "batch.kubernetes.io/job-name"
+
+// ControllerUid is used to programatically get pods corresponding to a Job.
+// There is a corresponding label without the batch.kubernetes.io that we support for legacy reasons.
+#ControllerUidLabel: "batch.kubernetes.io/controller-uid"
+
+// Annotation indicating the number of failures for the index corresponding
+// to the pod, which are counted towards the backoff limit.
+#JobIndexFailureCountAnnotation: "batch.kubernetes.io/job-index-failure-count"
+
+// Annotation indicating the number of failures for the index corresponding
+// to the pod, which don't count towards the backoff limit, according to the
+// pod failure policy. When the annotation is absent zero is implied.
+#JobIndexIgnoredFailureCountAnnotation: "batch.kubernetes.io/job-index-ignored-failure-count"
 
 // Job represents the configuration of a single job.
 #Job: {
@@ -81,12 +107,18 @@ import (
 
 #enumPodFailurePolicyAction:
 	#PodFailurePolicyActionFailJob |
+	#PodFailurePolicyActionFailIndex |
 	#PodFailurePolicyActionIgnore |
 	#PodFailurePolicyActionCount
 
 // This is an action which might be taken on a pod failure - mark the
 // pod's job as Failed and terminate all running pods.
 #PodFailurePolicyActionFailJob: #PodFailurePolicyAction & "FailJob"
+
+// This is an action which might be taken on a pod failure - mark the
+// Job's index as failed to avoid restarts within this index. This action
+// can only be used when backoffLimitPerIndex is set.
+#PodFailurePolicyActionFailIndex: #PodFailurePolicyAction & "FailIndex"
 
 // This is an action which might be taken on a pod failure - the counter towards
 // .backoffLimit, represented by the job's .status.failed field, is not
@@ -108,6 +140,22 @@ import (
 #PodFailurePolicyOnExitCodesOpIn:    #PodFailurePolicyOnExitCodesOperator & "In"
 #PodFailurePolicyOnExitCodesOpNotIn: #PodFailurePolicyOnExitCodesOperator & "NotIn"
 
+// PodReplacementPolicy specifies the policy for creating pod replacements.
+// +enum
+#PodReplacementPolicy: string // #enumPodReplacementPolicy
+
+#enumPodReplacementPolicy:
+	#TerminatingOrFailed |
+	#Failed
+
+// TerminatingOrFailed means that we recreate pods
+// when they are terminating (has a metadata.deletionTimestamp) or failed.
+#TerminatingOrFailed: #PodReplacementPolicy & "TerminatingOrFailed"
+
+// Failed means to wait until a previously created Pod is fully terminated (has phase
+// Failed or Succeeded) before creating a replacement Pod.
+#Failed: #PodReplacementPolicy & "Failed"
+
 // PodFailurePolicyOnExitCodesRequirement describes the requirement for handling
 // a failed pod based on its container exit codes. In particular, it lookups the
 // .state.terminated.exitCode for each app container and init container status,
@@ -125,6 +173,7 @@ import (
 	// Represents the relationship between the container exit code(s) and the
 	// specified values. Containers completed with success (exit code 0) are
 	// excluded from the requirement check. Possible values are:
+	//
 	// - In: the requirement is satisfied if at least one container exit code
 	//   (might be multiple if there are multiple containers not restricted
 	//   by the 'containerName' field) is in the set of specified values.
@@ -158,12 +207,17 @@ import (
 }
 
 // PodFailurePolicyRule describes how a pod failure is handled when the requirements are met.
-// One of OnExitCodes and onPodConditions, but not both, can be used in each rule.
+// One of onExitCodes and onPodConditions, but not both, can be used in each rule.
 #PodFailurePolicyRule: {
 	// Specifies the action taken on a pod failure when the requirements are satisfied.
 	// Possible values are:
+	//
 	// - FailJob: indicates that the pod's job is marked as Failed and all
 	//   running pods are terminated.
+	// - FailIndex: indicates that the pod's index is marked as Failed and will
+	//   not be restarted.
+	//   This value is alpha-level. It can be used when the
+	//   `JobBackoffLimitPerIndex` feature gate is enabled (disabled by default).
 	// - Ignore: indicates that the counter towards the .backoffLimit is not
 	//   incremented and a replacement pod is created.
 	// - Count: indicates that the pod is handled in the default way - the
@@ -205,7 +259,7 @@ import (
 	parallelism?: null | int32 @go(Parallelism,*int32) @protobuf(1,varint,opt)
 
 	// Specifies the desired number of successfully finished pods the
-	// job should be run with.  Setting to nil means that the success of any
+	// job should be run with.  Setting to null means that the success of any
 	// pod signals the success of all pods, and allows parallelism to have any positive
 	// value.  Setting to 1 means that parallelism is limited to 1 and the success of that
 	// pod signals the success of the job.
@@ -229,8 +283,8 @@ import (
 	// checked against the backoffLimit. This field cannot be used in combination
 	// with restartPolicy=OnFailure.
 	//
-	// This field is alpha-level. To use this field, you must enable the
-	// `JobPodFailurePolicy` feature gate (disabled by default).
+	// This field is beta-level. It can be used when the `JobPodFailurePolicy`
+	// feature gate is enabled (enabled by default).
 	// +optional
 	podFailurePolicy?: null | #PodFailurePolicy @go(PodFailurePolicy,*PodFailurePolicy) @protobuf(11,bytes,opt)
 
@@ -238,6 +292,30 @@ import (
 	// Defaults to 6
 	// +optional
 	backoffLimit?: null | int32 @go(BackoffLimit,*int32) @protobuf(7,varint,opt)
+
+	// Specifies the limit for the number of retries within an
+	// index before marking this index as failed. When enabled the number of
+	// failures per index is kept in the pod's
+	// batch.kubernetes.io/job-index-failure-count annotation. It can only
+	// be set when Job's completionMode=Indexed, and the Pod's restart
+	// policy is Never. The field is immutable.
+	// This field is alpha-level. It can be used when the `JobBackoffLimitPerIndex`
+	// feature gate is enabled (disabled by default).
+	// +optional
+	backoffLimitPerIndex?: null | int32 @go(BackoffLimitPerIndex,*int32) @protobuf(12,varint,opt)
+
+	// Specifies the maximal number of failed indexes before marking the Job as
+	// failed, when backoffLimitPerIndex is set. Once the number of failed
+	// indexes exceeds this number the entire Job is marked as Failed and its
+	// execution is terminated. When left as null the job continues execution of
+	// all of its indexes and is marked with the `Complete` Job condition.
+	// It can only be specified when backoffLimitPerIndex is set.
+	// It can be null or up to completions. It is required and must be
+	// less than or equal to 10^4 when is completions greater than 10^5.
+	// This field is alpha-level. It can be used when the `JobBackoffLimitPerIndex`
+	// feature gate is enabled (disabled by default).
+	// +optional
+	maxFailedIndexes?: null | int32 @go(MaxFailedIndexes,*int32) @protobuf(13,varint,opt)
 
 	// A label query over pods that should match the pod count.
 	// Normally, the system sets this field for you.
@@ -259,6 +337,7 @@ import (
 	manualSelector?: null | bool @go(ManualSelector,*bool) @protobuf(5,varint,opt)
 
 	// Describes the pod that will be created when executing a job.
+	// The only allowed template.spec.restartPolicy values are "Never" or "OnFailure".
 	// More info: https://kubernetes.io/docs/concepts/workloads/controllers/jobs-run-to-completion/
 	template: corev1.#PodTemplateSpec @go(Template) @protobuf(6,bytes,opt)
 
@@ -272,7 +351,7 @@ import (
 	// +optional
 	ttlSecondsAfterFinished?: null | int32 @go(TTLSecondsAfterFinished,*int32) @protobuf(8,varint,opt)
 
-	// CompletionMode specifies how Pod completions are tracked. It can be
+	// completionMode specifies how Pod completions are tracked. It can be
 	// `NonIndexed` (default) or `Indexed`.
 	//
 	// `NonIndexed` means that the Job is considered complete when there have
@@ -297,7 +376,7 @@ import (
 	// +optional
 	completionMode?: null | #CompletionMode @go(CompletionMode,*CompletionMode) @protobuf(9,bytes,opt,casttype=CompletionMode)
 
-	// Suspend specifies whether the Job controller should create Pods or not. If
+	// suspend specifies whether the Job controller should create Pods or not. If
 	// a Job is created with suspend set to true, no Pods are created by the Job
 	// controller. If a Job is suspended after creation (i.e. the flag goes from
 	// false to true), the Job controller will delete all active Pods associated
@@ -307,6 +386,19 @@ import (
 	//
 	// +optional
 	suspend?: null | bool @go(Suspend,*bool) @protobuf(10,varint,opt)
+
+	// podReplacementPolicy specifies when to create replacement Pods.
+	// Possible values are:
+	// - TerminatingOrFailed means that we recreate pods
+	//   when they are terminating (has a metadata.deletionTimestamp) or failed.
+	// - Failed means to wait until a previously created Pod is fully terminated (has phase
+	//   Failed or Succeeded) before creating a replacement Pod.
+	//
+	// When using podFailurePolicy, Failed is the the only allowed value.
+	// TerminatingOrFailed and Failed are allowed values when podFailurePolicy is not in use.
+	// This is an alpha field. Enable JobPodReplacementPolicy to be able to use this field.
+	// +optional
+	podReplacementPolicy?: null | #PodReplacementPolicy @go(PodReplacementPolicy,*PodReplacementPolicy) @protobuf(14,bytes,opt,casttype=podReplacementPolicy)
 }
 
 // JobStatus represents the current state of a Job.
@@ -350,7 +442,15 @@ import (
 	// +optional
 	failed?: int32 @go(Failed) @protobuf(6,varint,opt)
 
-	// CompletedIndexes holds the completed indexes when .spec.completionMode =
+	// The number of pods which are terminating (in phase Pending or Running
+	// and have a deletionTimestamp).
+	//
+	// This field is alpha-level. The job controller populates the field when
+	// the feature gate JobPodReplacementPolicy is enabled (disabled by default).
+	// +optional
+	terminating?: null | int32 @go(Terminating,*int32) @protobuf(11,varint,opt)
+
+	// completedIndexes holds the completed indexes when .spec.completionMode =
 	// "Indexed" in a text format. The indexes are represented as decimal integers
 	// separated by commas. The numbers are listed in increasing order. Three or
 	// more consecutive numbers are compressed and represented by the first and
@@ -360,15 +460,29 @@ import (
 	// +optional
 	completedIndexes?: string @go(CompletedIndexes) @protobuf(7,bytes,opt)
 
-	// UncountedTerminatedPods holds the UIDs of Pods that have terminated but
+	// FailedIndexes holds the failed indexes when backoffLimitPerIndex=true.
+	// The indexes are represented in the text format analogous as for the
+	// `completedIndexes` field, ie. they are kept as decimal integers
+	// separated by commas. The numbers are listed in increasing order. Three or
+	// more consecutive numbers are compressed and represented by the first and
+	// last element of the series, separated by a hyphen.
+	// For example, if the failed indexes are 1, 3, 4, 5 and 7, they are
+	// represented as "1,3-5,7".
+	// This field is alpha-level. It can be used when the `JobBackoffLimitPerIndex`
+	// feature gate is enabled (disabled by default).
+	// +optional
+	failedIndexes?: null | string @go(FailedIndexes,*string) @protobuf(10,bytes,opt)
+
+	// uncountedTerminatedPods holds the UIDs of Pods that have terminated but
 	// the job controller hasn't yet accounted for in the status counters.
 	//
 	// The job controller creates pods with a finalizer. When a pod terminates
 	// (succeeded or failed), the controller does three steps to account for it
 	// in the job status:
-	// (1) Add the pod UID to the arrays in this field.
-	// (2) Remove the pod finalizer.
-	// (3) Remove the pod UID from the arrays while increasing the corresponding
+	//
+	// 1. Add the pod UID to the arrays in this field.
+	// 2. Remove the pod finalizer.
+	// 3. Remove the pod UID from the arrays while increasing the corresponding
 	//     counter.
 	//
 	// Old jobs might not be tracked using this field, in which case the field
@@ -387,12 +501,12 @@ import (
 // UncountedTerminatedPods holds UIDs of Pods that have terminated but haven't
 // been accounted in Job status counters.
 #UncountedTerminatedPods: {
-	// Succeeded holds UIDs of succeeded Pods.
+	// succeeded holds UIDs of succeeded Pods.
 	// +listType=set
 	// +optional
 	succeeded?: [...types.#UID] @go(Succeeded,[]types.UID) @protobuf(1,bytes,rep,casttype=k8s.io/apimachinery/pkg/types.UID)
 
-	// Failed holds UIDs of failed Pods.
+	// failed holds UIDs of failed Pods.
 	// +listType=set
 	// +optional
 	failed?: [...types.#UID] @go(Failed,[]types.UID) @protobuf(2,bytes,rep,casttype=k8s.io/apimachinery/pkg/types.UID)
@@ -503,7 +617,6 @@ import (
 	// configuration, the controller will stop creating new new Jobs and will create a system event with the
 	// reason UnknownTimeZone.
 	// More information can be found in https://kubernetes.io/docs/concepts/workloads/controllers/cron-jobs/#time-zones
-	// This is beta field and must be enabled via the `CronJobTimeZone` feature gate.
 	// +optional
 	timeZone?: null | string @go(TimeZone,*string) @protobuf(8,bytes,opt)
 
@@ -514,6 +627,7 @@ import (
 
 	// Specifies how to treat concurrent executions of a Job.
 	// Valid values are:
+	//
 	// - "Allow" (default): allows CronJobs to run concurrently;
 	// - "Forbid": forbids concurrent runs, skipping next run if previous run hasn't finished yet;
 	// - "Replace": cancels currently running job and replaces it with a new one
