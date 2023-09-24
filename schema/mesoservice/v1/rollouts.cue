@@ -5,7 +5,7 @@ import (
 	"strings"
 
 	rollouts_v1alpha1 "github.com/argoproj/argo-rollouts/pkg/apis/rollouts/v1alpha1"
-	dynamicinputs_v1 "github.com/mkantzer/k8s-playground-cluster-state/schema/dynamicinputs/v1"
+	dynamicinputs_v1 "github.com/mkantzer/k8splayground-cluster-state/schema/dynamicinputs/v1"
 )
 
 _#EasyPlatformEnvVars: [string]: string | {}
@@ -113,12 +113,6 @@ _#RolloutsGenerator: {
 										INTERNAL_API_BASE_PATH:   ""
 										// Used for connecting to a managed Postgres instance for this mesoservice.
 										let mesoserviceUpper = strings.ToUpper(X1.metadata.name)
-										"PGSQL_\(mesoserviceUpper)_URL": strings.Join([
-															"PGSQL_\(mesoserviceUpper)_SCHEME",
-															"PGSQL_\(mesoserviceUpper)_HOST",
-															"PGSQL_\(mesoserviceUpper)_PORT",
-															"PGSQL_\(mesoserviceUpper)_PATH",
-										], "")
 										"PGSQL_\(mesoserviceUpper)_SCHEME": "postgresql://"
 										"PGSQL_\(mesoserviceUpper)_HOST":   "\(X1.metadata.name).postgress.internal"
 										"PGSQL_\(mesoserviceUpper)_PORT":   ":5432"

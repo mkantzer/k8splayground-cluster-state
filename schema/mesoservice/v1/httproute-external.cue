@@ -4,7 +4,7 @@ import (
 	"strings"
 	"list"
 
-	dynamicinputs_v1 "github.com/mkantzer/k8s-playground-cluster-state/schema/dynamicinputs/v1"
+	dynamicinputs_v1 "github.com/mkantzer/k8splayground-cluster-state/schema/dynamicinputs/v1"
 	gateway_v1beta1 "sigs.k8s.io/gateway-api/apis/v1beta1"
 )
 
@@ -51,7 +51,7 @@ _#HTTPRoutesGenerator: {
 							hostnames: list.FlattenN(list.Concat([
 									[ for sd in X2.apiFirstLevelSubdomainsActual {[
 										"\(X2.envSubdomain)\(sd).\(X2.dnsExternalSuffix)",
-									if X2.envSubdomain == "" {
+										if X2.envSubdomain == "" {
 										"*.\(sd).\(X2.dnsExternalSuffix)"
 									},
 								]}],

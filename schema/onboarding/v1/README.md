@@ -3,7 +3,7 @@
 ## Schema Definition
 
 ```cue
-package tenants
+package kube
 
 // Map of applications. One app per file.
 // Note: ApplicationName == `mesoservice/` subdirectory.

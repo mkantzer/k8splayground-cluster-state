@@ -2,7 +2,7 @@ package v1
 
 import (
 	autoscaling_v2 "k8s.io/api/autoscaling/v2"
-	dynamicinputs_v1 "github.com/mkantzer/k8s-playground-cluster-state/schema/dynamicinputs/v1"
+	dynamicinputs_v1 "github.com/mkantzer/k8splayground-cluster-state/schema/dynamicinputs/v1"
 )
 
 _#HorizontalPodAutoscalersOutput: [Context=string]: horizontalpodautoscaler: [Name=string]: autoscaling_v2.#HorizontalPodAutoscaler

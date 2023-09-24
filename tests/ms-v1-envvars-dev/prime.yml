@@ -1,0 +1,125 @@
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: ms-v1-envvars-dev-sa
+  labels:
+    name: ms-v1-envvars-dev-sa
+    macroservice: dummymacro
+    repo: cluster-state
+    team: Platform
+    namespace: dummynamespace
+    mesoservice: ms-v1-envvars-dev
+  annotations: {}
+---
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: ms-v1-envvars-dev-basic-app
+  labels:
+    name: ms-v1-envvars-dev-basic-app
+    macroservice: dummymacro
+    repo: cluster-state
+    team: Platform
+    namespace: dummynamespace
+    mesoservice: ms-v1-envvars-dev
+spec:
+  scaleTargetRef:
+    apiVersion: argoproj.io/v1alpha1
+    kind: Rollout
+    name: ms-v1-envvars-dev-basic-app
+  minReplicas: 3
+  maxReplicas: 30
+  metrics:
+    - type: Resource
+      resource:
+        name: memory
+        target:
+          type: Utilization
+          averageUtilization: 75
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: 75
+---
+apiVersion: argoproj.io/v1alpha1
+kind: Rollout
+metadata:
+  name: ms-v1-envvars-dev-basic-app
+  labels:
+    name: ms-v1-envvars-dev-basic-app
+    macroservice: dummymacro
+    repo: cluster-state
+    team: Platform
+    namespace: dummynamespace
+    mesoservice: ms-v1-envvars-dev
+spec:
+  minReadySeconds: 0
+  revisionHistoryLimit: 10
+  progressDeadlineSeconds: 600
+  progressDeadlineAbort: false
+  selector:
+    matchLabels:
+      name: ms-v1-envvars-dev-basic-app
+      macroservice: dummymacro
+      repo: cluster-state
+      team: Platform
+      namespace: dummynamespace
+      mesoservice: ms-v1-envvars-dev
+  analysis: {}
+  strategy:
+    canary: {}
+  template:
+    metadata:
+      labels:
+        name: ms-v1-envvars-dev-basic-app
+        macroservice: dummymacro
+        repo: cluster-state
+        team: Platform
+        namespace: dummynamespace
+        mesoservice: ms-v1-envvars-dev
+    spec:
+      serviceAccountName: ms-v1-envvars-dev-sa
+      containers:
+        - name: basic-app
+          image: ealen/echo-server@sha256:2c94316d0dcb4602d510ca62eff06c9e760270d95e823212bfebb3cbcb480dfa
+          imagePullPolicy: Always
+          env:
+            - name: INTERNAL_API_BASE_URL
+              value: http://main-gateway.internal:80
+            - name: INTERNAL_API_BASE_SCHEME
+              value: http://
+            - name: INTERNAL_API_BASE_HOST
+              value: main-gateway.internal
+            - name: INTERNAL_API_BASE_PORT
+              value: :80
+            - name: INTERNAL_API_BASE_PATH
+              value: ""
+            - name: PGSQL_MS-V1-ENVVARS-DEV_SCHEME
+              value: postgresql://
+            - name: PGSQL_MS-V1-ENVVARS-DEV_HOST
+              value: ms-v1-envvars-dev.postgress.internal
+            - name: PGSQL_MS-V1-ENVVARS-DEV_PORT
+              value: :5432
+            - name: PGSQL_MS-V1-ENVVARS-DEV_PATH
+              value: /ms-v1-envvars-dev
+            - name: TEST
+              value: test
+            - name: PORT
+              value: "8080"
+            - name: ENV_SPECIFIC_PREVIEW
+              value: devValue
+            - name: ENV_SPECIFIC_PRODLIKE
+              value: default
+            - name: ENV_SPECIFIC_NEITHER
+              value: default
+          resources:
+            requests:
+              cpu: 250m
+              memory: 1Gi
+            limits:
+              cpu: 500m
+              memory: 2Gi
+          ports: []
+

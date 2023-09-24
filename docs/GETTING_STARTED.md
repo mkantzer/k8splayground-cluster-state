@@ -5,7 +5,7 @@ This document details the process for onboarding a new component onto the kubern
 ## Definitions
 
 Naming is hard, especially in this space; lots of terms are overloaded with multiple technical meanings.
-We have defined some specific terms for Platform use, to avoid further reuse and (hopefully) provide some clarity. 
+We have defined some specific terms for Platform use, to avoid further reuse and (hopefully) provide some clarity.
 We also provide some definitions for platform resources that may be helpful to a Prod-Eng user who is not familiar with the landscape.
 
 -   `Mesoservice`: Our term for "All your stuff" / "Your whole application" / "The collection of stuff required to run a specific domain of the LeagueApps Product". (You may also think "microservice" or "service" or "application" or similar, but those terms are already in use)
@@ -83,7 +83,7 @@ Initial Bootstrapping:
 
 1. Create a new branch from `main`
 2. Create a new `.cue` file in `onboarding/`, with the same name as your mesoservice.
-3. Ensure file starts with `package tenants`
+3. Ensure file starts with `package kube`
 4. Define your configuration within `onboarding: <YOUR APP'S NAME>:`.
     - See [`onboarding` schema docs](../schema/onboarding/README.md) for field reference.
     - **DO NOT** enable production deployments (i.e. do not set `prod: enabled: true`)
@@ -96,7 +96,7 @@ Initial Mesoservice Configuration:
 2. Create a new subdirectory under `mesoservices/`, with the same name as your mesoservice.
 3. Create `.cue` files containing all configuration.
     - 99% of the time, you will only need a single file.
-    - Begin all files with `package tenants`.
+    - Begin all files with `package kube`.
     - 99% of the time, you will want to use the `mesoservice:` top-level object. See [schema documentation](schema/mesoservice/README.md).
 4. Open a **Draft** PR to `main`.
 5. Validate and test in the provided test environment.
@@ -171,7 +171,7 @@ All announcements related to this system will be in the `<CHANNEL NAME>` channel
 
 ### Requesting enhancements and new features
 
-The Platform team has a number of features they are already targeting to add to this system, based on current application requirements, and our own design goals. 
+The Platform team has a number of features they are already targeting to add to this system, based on current application requirements, and our own design goals.
 We will also be in constant communication with teams to try to discover upcoming needs and current pain-points, to help us design, prioritize, and implement updates.
 
 However, we cannot know everything that every Prod-Eng team is working on or designing for.

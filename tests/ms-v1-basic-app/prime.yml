@@ -1,0 +1,215 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: ms-v1-basic-app-basic-app-primary
+  labels:
+    name: ms-v1-basic-app-basic-app-primary
+    macroservice: dummymacro
+    repo: cluster-state
+    team: Platform
+    namespace: dummynamespace
+    mesoservice: ms-v1-basic-app
+spec:
+  selector:
+    name: ms-v1-basic-app-basic-app
+    macroservice: dummymacro
+    repo: cluster-state
+    team: Platform
+    namespace: dummynamespace
+    mesoservice: ms-v1-basic-app
+  ports:
+    - name: primary
+      port: 80
+      targetPort: 8080
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: ms-v1-basic-app-basic-app-secondary
+  labels:
+    name: ms-v1-basic-app-basic-app-secondary
+    macroservice: dummymacro
+    repo: cluster-state
+    team: Platform
+    namespace: dummynamespace
+    mesoservice: ms-v1-basic-app
+spec:
+  selector:
+    name: ms-v1-basic-app-basic-app
+    macroservice: dummymacro
+    repo: cluster-state
+    team: Platform
+    namespace: dummynamespace
+    mesoservice: ms-v1-basic-app
+  ports:
+    - name: secondary
+      port: 9999
+      targetPort: 9999
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: ms-v1-basic-app-sa
+  labels:
+    name: ms-v1-basic-app-sa
+    macroservice: dummymacro
+    repo: cluster-state
+    team: Platform
+    namespace: dummynamespace
+    mesoservice: ms-v1-basic-app
+  annotations: {}
+---
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: ms-v1-basic-app-basic-app
+  labels:
+    name: ms-v1-basic-app-basic-app
+    macroservice: dummymacro
+    repo: cluster-state
+    team: Platform
+    namespace: dummynamespace
+    mesoservice: ms-v1-basic-app
+spec:
+  scaleTargetRef:
+    apiVersion: argoproj.io/v1alpha1
+    kind: Rollout
+    name: ms-v1-basic-app-basic-app
+  minReplicas: 3
+  maxReplicas: 30
+  metrics:
+    - type: Resource
+      resource:
+        name: memory
+        target:
+          type: Utilization
+          averageUtilization: 75
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: 75
+---
+apiVersion: argoproj.io/v1alpha1
+kind: Rollout
+metadata:
+  name: ms-v1-basic-app-basic-app
+  labels:
+    name: ms-v1-basic-app-basic-app
+    macroservice: dummymacro
+    repo: cluster-state
+    team: Platform
+    namespace: dummynamespace
+    mesoservice: ms-v1-basic-app
+spec:
+  minReadySeconds: 0
+  revisionHistoryLimit: 10
+  progressDeadlineSeconds: 600
+  progressDeadlineAbort: false
+  selector:
+    matchLabels:
+      name: ms-v1-basic-app-basic-app
+      macroservice: dummymacro
+      repo: cluster-state
+      team: Platform
+      namespace: dummynamespace
+      mesoservice: ms-v1-basic-app
+  analysis: {}
+  strategy:
+    canary: {}
+  template:
+    metadata:
+      labels:
+        name: ms-v1-basic-app-basic-app
+        macroservice: dummymacro
+        repo: cluster-state
+        team: Platform
+        namespace: dummynamespace
+        mesoservice: ms-v1-basic-app
+    spec:
+      serviceAccountName: ms-v1-basic-app-sa
+      containers:
+        - name: basic-app
+          image: ealen/echo-server@sha256:2c94316d0dcb4602d510ca62eff06c9e760270d95e823212bfebb3cbcb480dfa
+          imagePullPolicy: Always
+          env:
+            - name: INTERNAL_API_BASE_URL
+              value: http://main-gateway.internal:80
+            - name: INTERNAL_API_BASE_SCHEME
+              value: http://
+            - name: INTERNAL_API_BASE_HOST
+              value: main-gateway.internal
+            - name: INTERNAL_API_BASE_PORT
+              value: :80
+            - name: INTERNAL_API_BASE_PATH
+              value: ""
+            - name: PGSQL_MS-V1-BASIC-APP_SCHEME
+              value: postgresql://
+            - name: PGSQL_MS-V1-BASIC-APP_HOST
+              value: ms-v1-basic-app.postgress.internal
+            - name: PGSQL_MS-V1-BASIC-APP_PORT
+              value: :5432
+            - name: PGSQL_MS-V1-BASIC-APP_PATH
+              value: /ms-v1-basic-app
+            - name: TEST
+              value: test
+            - name: PORT
+              value: "8080"
+          resources:
+            requests:
+              cpu: 250m
+              memory: 1Gi
+            limits:
+              cpu: 500m
+              memory: 2Gi
+          ports:
+            - name: primary
+              protocol: TCP
+              containerPort: 8080
+            - name: secondary
+              protocol: TCP
+              containerPort: 9999
+          readinessProbe:
+            initialDelaySeconds: 5
+            timeoutSeconds: 3
+            httpGet:
+              path: /probe/ready
+              port: 8080
+          startupProbe:
+            initialDelaySeconds: 5
+            timeoutSeconds: 3
+            httpGet:
+              path: /probe/startup
+              port: 8080
+---
+apiVersion: monitoring.coreos.com/v1
+kind: PodMonitor
+metadata:
+  name: ms-v1-basic-app-basic-app
+  labels:
+    name: ms-v1-basic-app-basic-app
+    macroservice: dummymacro
+    repo: cluster-state
+    team: Platform
+    namespace: dummynamespace
+    mesoservice: ms-v1-basic-app
+spec:
+  selector:
+    matchLabels:
+      name: ms-v1-basic-app-basic-app
+      macroservice: dummymacro
+      repo: cluster-state
+      team: Platform
+      namespace: dummynamespace
+      mesoservice: ms-v1-basic-app
+  podMetricsEndpoints:
+    - interval: 5s
+      path: metrics/
+      port: "8080"
+  podTargetLabels:
+    - macroservice
+    - repo
+    - team
+    - mesoservice
+

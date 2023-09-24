@@ -2,7 +2,7 @@ package v1
 
 import (
 	core_v1 "k8s.io/api/core/v1"
-	dynamicinputs_v1 "github.com/mkantzer/k8s-playground-cluster-state/schema/dynamicinputs/v1"
+	dynamicinputs_v1 "github.com/mkantzer/k8splayground-cluster-state/schema/dynamicinputs/v1"
 )
 
 _#ServiceAccountsOutput: [Context=string]: serviceaccount: [string]: core_v1.#ServiceAccount

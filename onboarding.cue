@@ -1,7 +1,7 @@
-package tenants
+package kube
 
 import (
-	onboarding_v1 "github.com/LeagueApps/tenants/schema/onboarding/v1"
+	onboarding_v1 "github.com/mkantzer/k8splayground-cluster-state/schema/onboarding/v1"
 )
 
 // This file is used for defining and transforming the `onboarding:` object into

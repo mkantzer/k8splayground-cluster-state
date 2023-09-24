@@ -71,7 +71,7 @@ _#ProdGenerator: {
 				spec: {
 					project: "root"
 					source: {
-						repoURL:        "git@github.com:LeagueApps/tenants.git"
+						repoURL:        "git@github.com:mkantzer/k8splayground-cluster-state.git"
 						targetRevision: "HEAD"
 						path:           path_pkg.Join([
 								"mesoservices",

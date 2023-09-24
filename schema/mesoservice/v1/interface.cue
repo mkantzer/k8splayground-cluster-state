@@ -1,8 +1,7 @@
 package v1
 
 import (
-	dynamicinputs_v1 "github.com/mkantzer/k8s-playground-cluster-state/schema/dynamicinputs/v1"
-	"k8s.io/apimachinery/pkg/util/intstr"
+	dynamicinputs_v1 "github.com/mkantzer/k8splayground-cluster-state/schema/dynamicinputs/v1"
 )
 
 // External-facing Mesoservice spec. Not used for input, but _is_ used for structure enforcement.
@@ -127,5 +126,5 @@ _#Probe: {
 
 _#Metrics: {
 	path: string | *"/metrics"
-	port: intstr.#IntOrString | *80
+	port: string | *"80"
 }

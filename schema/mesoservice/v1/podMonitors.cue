@@ -2,7 +2,7 @@ package v1
 
 import (
 	podmonitors_v1 "github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1"
-	dynamicinputs_v1 "github.com/mkantzer/k8s-playground-cluster-state/schema/dynamicinputs/v1"
+	dynamicinputs_v1 "github.com/mkantzer/k8splayground-cluster-state/schema/dynamicinputs/v1"
 	"list"
 )
 
@@ -56,9 +56,9 @@ _#PodMonitorsGenerator: {
 						"namespace",
 						"project_id",
 					]
-					podTargetLabels: fromPod: [
-						for labelKey, labelValue in NonNameLabels if !list.Contains(ReservedLabels, labelKey) {
-							from: labelKey
+					podTargetLabels: [
+						for labelKey, _ in NonNameLabels if !list.Contains(ReservedLabels, labelKey) {
+							labelKey
 						},
 					]
 				}}
@@ -67,6 +67,6 @@ _#PodMonitorsGenerator: {
 
 	// Set Outputs
 	out: {
-		prime: podmonitors: _podmonitorsBase
+		prime: podmonitor: _podmonitorsBase
 	}
 }

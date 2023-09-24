@@ -39,20 +39,20 @@ _devClusterList: _#DevClusterList & {
 	}
 }
 
-_#CSPROutput: applicationset: [string]: application_v1alpha1.#ApplicationSet
+_#ClusterStatePROutput: applicationset: [string]: application_v1alpha1.#ApplicationSet
 
-_#CSPRGenerator: {
+_#ClusterStatePRGenerator: {
 	// Input for the caller
 	X1=in: #Input
 	// Output for the caller
-	out: _#CSPROutput
+	out: _#ClusterStatePROutput
 
 	// Intermediate fileds
 	// Primary applicationset generation
 	// For field reference, see Argo's example:
 	// https://argo-cd.readthedocs.io/en/stable/operator-manual/applicationset.yaml
 	// and their general guide: https://argo-cd.readthedocs.io/en/stable/operator-manual/applicationset/
-	_tenantsPRApplicationSets: {
+	_clusterStatePRApplicationSets: {
 		for clusterName, clusterProps in _devClusterList {
 
 			let Name = "\(X1.metadata.name)-cspr-\(clusterProps.shortName)-prime"
@@ -102,7 +102,7 @@ _#CSPRGenerator: {
 						spec: {
 							project: "root"
 							source: {
-								repoURL:        "git@github.com:LeagueApps/tenants.git"
+								repoURL:        "git@github.com:mkantzer/k8splayground-cluster-state.git"
 								targetRevision: "{{branch}}"
 								path:           path_pkg.Join([
 										"mesoservices",
@@ -175,5 +175,5 @@ _#CSPRGenerator: {
 	}
 
 	// set output
-	out: applicationset: _tenantsPRApplicationSets
+	out: applicationset: _clusterStatePRApplicationSets
 }

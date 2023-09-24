@@ -1,8 +1,8 @@
-package tenants
+package kube
 
 import (
 	"strings"
-	dynamicinputs_v1 "github.com/LeagueApps/tenants/schema/dynamicinputs/v1"
+	dynamicinputs_v1 "github.com/mkantzer/k8splayground-cluster-state/schema/dynamicinputs/v1"
 )
 
 // This schema defines configuration that can be injected at runtime using tags:

@@ -26,15 +26,15 @@ package v1
 	out: #Output
 
 	//intermediate fields
-	_prodApplications:         _#ProdGenerator & {in:      X1}
-	_tenantsPRApplicationSets: _#TenantsPRGenerator & {in: X1}
+	_prodApplications:              _#ProdGenerator & {in:           X1}
+	_clusterStatePRApplicationSets: _#ClusterStatePRGenerator & {in: X1}
 
 	// set output
 	out: {
 		// generated manifests
 		kubernetes: {
 			_prodApplications.out
-			_tenantsPRApplicationSets.out
+			_clusterStatePRApplicationSets.out
 		}
 	}
 }

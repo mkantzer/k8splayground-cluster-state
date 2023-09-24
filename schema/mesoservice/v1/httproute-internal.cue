@@ -5,7 +5,7 @@ import (
 	"list"
 
 	gateway_v1beta1 "sigs.k8s.io/gateway-api/apis/v1beta1"
-	dynamicinputs_v1 "github.com/mkantzer/k8s-playground-cluster-state/schema/dynamicinputs/v1"
+	dynamicinputs_v1 "github.com/mkantzer/k8splayground-cluster-state/schema/dynamicinputs/v1"
 )
 
 _#HTTPRoutesOutput: [Context=string]: httproute: [string]: gateway_v1beta1.#HTTPRoute

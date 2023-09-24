@@ -1,4 +1,4 @@
-package tenants
+package kube
 
 import (
 	core_v1 "k8s.io/api/core/v1"
@@ -13,7 +13,7 @@ import (
 	gateway_v1beta1 "sigs.k8s.io/gateway-api/apis/v1beta1"
 	rollouts_v1alpha1 "github.com/argoproj/argo-rollouts/pkg/apis/rollouts/v1alpha1"
 
-	raw_k8s "github.com/LeagueApps/tenants/schema/raw_k8s"
+	raw_k8s "github.com/mkantzer/k8splayground-cluster-state/schema/raw_k8s"
 )
 
 // Enforce schema requirements for kinds, and ensure `kind:` is properly PascalCased
@@ -26,7 +26,7 @@ kubernetes: prime: {
 	horizontalpodautoscaler: [string]: autoscaling_v2.#HorizontalPodAutoscaler & {kind: "HorizontalPodAutoscaler"}
 	httproute: [string]:               gateway_v1beta1.#HTTPRoute & {kind:              "HTTPRoute"}
 	rollout: [string]:                 rollouts_v1alpha1.#Rollout & {kind:              "Rollout"}
-	podmonitor: [string]:              podmonitors_v1.#PodMonitor & {kind:              "Podmonitors"}
+	podmonitor: [string]:              podmonitors_v1.#PodMonitor & {kind:              "PodMonitor"}
 	healthcheckpolicy: [string]:       raw_k8s.#HealthCheckPolicy & {kind:              "HealthCheckPolicy"}
 	...
 }
