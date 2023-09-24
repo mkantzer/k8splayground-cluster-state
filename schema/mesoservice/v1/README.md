@@ -54,7 +54,7 @@ Mesoservice: {
 
 						// currently available envs are:
 						// - `preview`, used for PR or other preview environments.
-						// - `prodLike`, the main configuration. This includes the copy of prod in CICD1, and eventually others. NOT JUST ACTUAL PRODUCTION.
+						// - `prodLike`, the main configuration. This includes the copy of prod in the development cluster, and eventually others. NOT JUST ACTUAL PRODUCTION.
 					}
 				}
 				// for scraping prometheus metrics.

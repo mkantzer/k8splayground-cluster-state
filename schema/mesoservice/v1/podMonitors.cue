@@ -6,7 +6,7 @@ import (
 	"list"
 )
 
-_#PodMonitorsOutput: [Context=string]: podmonitors: [string]: podmonitors_v1.#PodMonitoring
+_#PodMonitorsOutput: [Context=string]: podmonitor: [string]: podmonitors_v1.#PodMonitor
 
 _#PodMonitorsGenerator: {
 	// Input for the caller
